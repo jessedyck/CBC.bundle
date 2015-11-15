@@ -1,50 +1,31 @@
 BASE_URL = 'http://www.cbc.ca'
-SEARCH_URL = 'http://search.cbc.ca/search?q=%s&num=10&client=video-search&proxystylesheet=video-search&output=xml_no_dtd&site=2011-Video&getfields=*&proxyreload=1&ie=utf8&oe=utf8&requiredfields=audioVideo:Video&filter=p'
+SEARCH_URL = 'http://www.cbc.ca/player/search?query=%s'
 
 def Search(query):
 
     oc = ObjectContainer()
-    data = HTML.ElementFromURL(SEARCH_URL % query)
+    page = HTML.ElementFromURL(SEARCH_URL % query)
 
-    for clip in data.xpath('//div[@class="clips"]//div[contains(@class, "clip col")]'):
-
-        clip_url = clip.xpath('.//a/@href')[0]
-
-        if not clip_url.startswith(BASE_URL):
-            clip_url = BASE_URL + clip_url
-
-        title = clip.xpath('.//img/@alt')[0]
-        thumb = clip.xpath('.//img/@src')[0]
-
+    for item in page.xpath('//li[@class="medialist-item"]'):
+        url     = item.xpath('./a')[0].get('href')
+        if BASE_URL not in url:
+            url = BASE_URL + url
+        thumb   = item.xpath('.//img')[0].get('src')
+        date    = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
         try:
-            date = Datetime.ParseDate(clip.xpath('.//span[@class="date"]/text()')[0]).date()
+            duration= Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
         except:
-            date = None
-
-        try:
-            runtime = clip.xpath('.//span[@class="length"]/text()')[0].split(':')
-
-            if len(runtime) == 3:
-                duration = ((int(runtime[0])*60 + int(runtime[1]))*60 + int(runtime[2]))*1000
-            elif len(runtime) == 2:
-                duration = (int(runtime.split(':')[0])*60 + int(runtime.split(':')[1]))*1000
-            else:
-                duration = int(runtime[0])*1000
-        except:
-            duration = None
-
-        try:
-            summary = clip.xpath('.//span[@class="desc"]/text()')[0]
-        except:
-            summary = None
-
-        oc.add(VideoClipObject(
-            url = clip_url,
+            duration=None
+        title   = item.xpath('.//div[@class="medialist-title"]')[0].text
+        
+        oc.add(
+            VideoClipObject(
+            url = url,
             title = title,
-            summary = summary,
             duration = duration,
             originally_available_at = date,
-            thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback='icon-default.jpg')
-        ))
+            thumb = thumb
+            )
+        )
 
     return oc
