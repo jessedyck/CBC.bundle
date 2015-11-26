@@ -29,7 +29,7 @@ def MainMenu():
     oc = ObjectContainer()
     oc.add(DirectoryObject(key=Callback(HockeyNightInCanada), title='Hockey Night In Canada'))
     oc.add(DirectoryObject(key=Callback(LiveSports), title='Live Sports'))
-    
+
     for category in CATEGORIES:
 
         oc.add(DirectoryObject(
@@ -49,93 +49,101 @@ def MainMenu():
 ####################################################################################################
 @route('/video/cbc/hnic')
 def HockeyNightInCanada():
+
     oc = ObjectContainer(title2='Hockey Night In Canada')
     page = HTML.ElementFromURL(NHL_URL)
+
     try:
-        live_url    = page.xpath('//li[@class="ticker-item live "]//a')[0].get('href')
-        gid         = RE_GID.search(live_url).group('gid')
-        data        = JSON.ObjectFromURL(JSON_URL % gid)['leadmedia']
-        
-        title   = data['title']
+        live_url = page.xpath('//li[@class="ticker-item live "]//a')[0].get('href')
+        gid = RE_GID.search(live_url).group('gid')
+        data = JSON.ObjectFromURL(JSON_URL % gid)['leadmedia']
+
+        title = data['title']
         summary = data['description']
-        thumb   = data['headlineimage']['url']
-        vid     = data['releaseid']
-        url     = VIDEO_URL + vid
-        oc.add(
-            VideoClipObject(
-                url     = url,
-                title   = title,
-                summary = summary,
-                thumb   = thumb
-            )
-        )
+        thumb = data['headlineimage']['url']
+        vid = data['releaseid']
+        url = VIDEO_URL + vid
+
+        oc.add(VideoClipObject(
+            url = url,
+            title = title,
+            summary = summary,
+            thumb = thumb
+        ))
+
     except:
         return ObjectContainer(header="No Live Games Now", message="Please try again another time.")
-    
 
 ####################################################################################################
 @route('/video/cbc/sports')
 def LiveSports():
-  oc = ObjectContainer()
-  page = HTML.ElementFromURL(LIVE_SPORTS)
-  for item in page.xpath('//section[@class="category-content full"]//li[@class="medialist-item"]'):
-    link = item.xpath('./a')[0].get('href')
-    thumb = item.xpath('.//img')[0].get('src')
-    date = item.xpath('.//span[@class="medialist-date"]')[0].text
-    title = item.xpath('.//div[@class="medialist-title"]')[0].text
-    oc.add(
-      VideoClipObject(
-        url = link,
-        title = title,
-        originally_available_at = Datetime.ParseDate(date).date(),
-        thumb = Resource.ContentsOfURLWithFallback(url=thumb)
-        )
-    )
-  return oc
+
+    oc = ObjectContainer()
+    page = HTML.ElementFromURL(LIVE_SPORTS)
+
+    for item in page.xpath('//section[@class="category-content full"]//li[@class="medialist-item"]'):
+
+        link = item.xpath('./a')[0].get('href')
+        thumb = item.xpath('.//img')[0].get('src')
+        date = item.xpath('.//span[@class="medialist-date"]')[0].text
+        title = item.xpath('.//div[@class="medialist-title"]')[0].text
+
+        oc.add(VideoClipObject(
+            url = link,
+            title = title,
+            originally_available_at = Datetime.ParseDate(date).date(),
+            thumb = Resource.ContentsOfURLWithFallback(url=thumb)
+        ))
+
+    return oc
 
 ####################################################################################################
 @route('/video/cbc/category')
 def Category(category=None, link=None):
 
     oc = ObjectContainer(title2=category)
+
     if link:
         page = HTML.ElementFromURL(link)
     else:
         page = HTML.ElementFromURL(PLAYER_URL % category.lower())
         oc.add(DirectoryObject(key=Callback(Featured, category=category), title="Featured"))
-    
-    for item in page.xpath('.//ul[@class="longlist-list"]//a'):
-        title   = item.text
-        link    = item.get('href')
 
-        oc.add(
-            DirectoryObject(
-                key = Callback(ShowsMenu, title=title, link=link),
-                title = title
-            )
-        )
+    for item in page.xpath('.//ul[@class="longlist-list"]//a'):
+
+        title = item.text
+        link = item.get('href')
+
+        oc.add(DirectoryObject(
+            key = Callback(ShowsMenu, title=title, link=link),
+            title = title
+        ))
+
     for item in page.xpath('//li[contains(@class,"medialist-item")]'):
-        url     = item.xpath('./a')[0].get('href')
+
+        url = item.xpath('./a')[0].get('href')
+
         if BASE_URL not in url:
             url = BASE_URL + url
-        thumb   = item.xpath('.//img')[0].get('src')
-        date    = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
+        thumb = item.xpath('.//img')[0].get('src')
+        date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
         try:
-            duration= Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
+            duration = Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
         except:
             duration = 0
-        title   = item.xpath('.//div[@class="medialist-title"]')[0].text
-        
-        oc.add(
-            VideoClipObject(
+
+        title= item.xpath('.//div[@class="medialist-title"]')[0].text
+
+        oc.add(VideoClipObject(
             url = url,
             title = title,
             duration = duration,
             originally_available_at = date,
             thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
-            )
-        )
-    
+        ))
+
     return oc
 
 ####################################################################################################
@@ -143,71 +151,76 @@ def Category(category=None, link=None):
 def ShowsMenu(title, link):
 
     oc = ObjectContainer(title2=title)
-
     page = HTML.ElementFromURL(link)
-    
+
     ''' If the page includes a list of seasons or other sub-divisions, use the Category() function to parse them '''
     try:
         seasons = page.xpath('//div[@class="longlist"]//a')
+
         if len(seasons) > 0:
             return Category(category=title, link=link)
     except:
         pass
-    
+
     for item in page.xpath('//li[contains(@class,"medialist-item")]'):
-        url     = item.xpath('./a')[0].get('href')
+
+        url = item.xpath('./a')[0].get('href')
+
         if BASE_URL not in url:
             url = BASE_URL + url
-        thumb   = item.xpath('.//img')[0].get('src')
-        date    = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
+        thumb = item.xpath('.//img')[0].get('src')
+        date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
         try:
-            duration= Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
+            duration = Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
         except:
             duration = 0
-        title   = item.xpath('.//div[@class="medialist-title"]')[0].text
-        
-        oc.add(
-            VideoClipObject(
+
+        title = item.xpath('.//div[@class="medialist-title"]')[0].text
+
+        oc.add(VideoClipObject(
             url = url,
             title = title,
-           duration = duration,
+            duration = duration,
             originally_available_at = date,
             thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
-            )
-        )
-    
+        ))
+
     return oc
 
 ####################################################################################################
 @route('/video/cbc/featured')
 def Featured(category=None):
-    
+
     oc = ObjectContainer(title2=category)
-    
     page = HTML.ElementFromURL(PLAYER_URL % category.lower())
-    
+
     for item in page.xpath('//div[@class="featured-container"]'):
-        url     = item.xpath('./a')[0].get('href')
+
+        url = item.xpath('./a')[0].get('href')
+
         if BASE_URL not in url:
             url = BASE_URL + url
-        thumb   = RE_THUMB_URL.search(item.xpath('.//div[@class="featured-content"]')[0].get('style')).group('url')
-        title   = item.xpath('.//p[@class="featured-title"]')[0].text
-        date    = Datetime.ParseDate(item.xpath('.//p[@class="featured-date"]')[0].text).date()
+
+        thumb = RE_THUMB_URL.search(item.xpath('.//div[@class="featured-content"]')[0].get('style')).group('url')
+        title = item.xpath('.//p[@class="featured-title"]')[0].text
+        date = Datetime.ParseDate(item.xpath('.//p[@class="featured-date"]')[0].text).date()
+
         try:
-            duration= Datetime.MillisecondsFromString(item.xpath('.//p[@class="featured-duration"]')[0].text)
+            duration = Datetime.MillisecondsFromString(item.xpath('.//p[@class="featured-duration"]')[0].text)
         except:
             duration = 0
+
         summary = item.xpath('.//p[@class="featured-description"]')[0].text
-        
-        oc.add(
-            VideoClipObject(
+
+        oc.add(VideoClipObject(
             url = url,
             title = title,
-           duration = duration,
+            duration = duration,
             originally_available_at = date,
             summary = summary,
             thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
-            )
-        )
+        ))
 
     return oc
