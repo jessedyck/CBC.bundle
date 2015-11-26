@@ -7,25 +7,28 @@ def Search(query):
     page = HTML.ElementFromURL(SEARCH_URL % query)
 
     for item in page.xpath('//li[@class="medialist-item"]'):
-        url     = item.xpath('./a')[0].get('href')
+
+        url = item.xpath('./a')[0].get('href')
+
         if BASE_URL not in url:
             url = BASE_URL + url
-        thumb   = item.xpath('.//img')[0].get('src')
-        date    = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
+        thumb = item.xpath('.//img')[0].get('src')
+        date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+
         try:
-            duration= Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
+            duration = Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
         except:
-            duration=None
-        title   = item.xpath('.//div[@class="medialist-title"]')[0].text
-        
-        oc.add(
-            VideoClipObject(
+            duration = None
+
+        title = item.xpath('.//div[@class="medialist-title"]')[0].text
+
+        oc.add(VideoClipObject(
             url = url,
             title = title,
             duration = duration,
             originally_available_at = date,
             thumb = thumb
-            )
-        )
+        ))
 
     return oc
