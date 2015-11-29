@@ -203,7 +203,7 @@ def Featured(category=None):
         if BASE_URL not in url:
             url = BASE_URL + url
 
-        thumb = RE_THUMB_URL.search(item.xpath('.//div[@class="featured-content"]')[0].get('style')).group('url')
+        thumb = item.xpath('.//img')[0].get('src')
         title = item.xpath('.//p[@class="featured-title"]')[0].text
         date = Datetime.ParseDate(item.xpath('.//p[@class="featured-date"]')[0].text).date()
 
