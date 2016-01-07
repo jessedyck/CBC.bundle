@@ -84,6 +84,8 @@ def LiveSports():
     for item in page.xpath('//section[@class="category-content full"]//li[@class="medialist-item"]'):
 
         link = item.xpath('./a')[0].get('href')
+        if BASE_URL not in link:
+	        link = BASE_URL + link
         thumb = item.xpath('.//img')[0].get('src')
         date = item.xpath('.//span[@class="medialist-date"]')[0].text
         title = item.xpath('.//div[@class="medialist-title"]')[0].text
@@ -113,7 +115,8 @@ def Category(category=None, link=None):
 
         title = item.text
         link = item.get('href')
-
+        if BASE_URL not in link:
+	        link = BASE_URL + link
         oc.add(DirectoryObject(
             key = Callback(ShowsMenu, title=title, link=link),
             title = title
