@@ -124,28 +124,28 @@ def Category(category=None, link=None):
 
     for item in page.xpath('//li[contains(@class,"medialist-item")]'):
 
-        url = item.xpath('./a')[0].get('href')
+        url = item.xpath('.//a')[0].get('href')
+	if not "watchcbc.ca" in url:
+         if BASE_URL not in url:
+            	url = BASE_URL + url
 
-        if BASE_URL not in url:
-            url = BASE_URL + url
+         thumb = item.xpath('.//img')[0].get('src')
+         date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
 
-        thumb = item.xpath('.//img')[0].get('src')
-        date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
-
-        try:
+         try:
             duration = Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
-        except:
+         except:
             duration = 0
 
-        title= item.xpath('.//div[@class="medialist-title"]')[0].text
+         title= item.xpath('.//div[@class="medialist-title"]')[0].text
 
-        oc.add(VideoClipObject(
+         oc.add(VideoClipObject(
             url = url,
             title = title,
             duration = duration,
             originally_available_at = date,
             thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
-        ))
+         ))
 
     return oc
 
@@ -167,28 +167,28 @@ def ShowsMenu(title, link):
 
     for item in page.xpath('//li[contains(@class,"medialist-item")]'):
 
-        url = item.xpath('./a')[0].get('href')
-
-        if BASE_URL not in url:
+        url = item.xpath('.//a')[0].get('href')
+	if not "watchcbc.ca" in url:
+         if BASE_URL not in url:
             url = BASE_URL + url
 
-        thumb = item.xpath('.//img')[0].get('src')
-        date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
+         thumb = item.xpath('.//img')[0].get('src')
+         date = Datetime.ParseDate(item.xpath('.//span[@class="medialist-date"]')[0].text).date()
 
-        try:
+         try:
             duration = Datetime.MillisecondsFromString(item.xpath('.//span[@class="medialist-duration"]')[0].text)
-        except:
+         except:
             duration = 0
 
-        title = item.xpath('.//div[@class="medialist-title"]')[0].text
+         title = item.xpath('.//div[@class="medialist-title"]')[0].text
 
-        oc.add(VideoClipObject(
+         oc.add(VideoClipObject(
             url = url,
             title = title,
             duration = duration,
             originally_available_at = date,
             thumb = Resource.ContentsOfURLWithFallback(url=thumb, fallback=ICON)
-        ))
+         ))
 
     return oc
 
