@@ -8,5 +8,9 @@
 	<string>*</string>
 	<key>PlexFrameworkVersion</key>
 	<string>2</string>
+	<key>PlexPluginRegions</key>
+	<array>
+		<string>CA</string>
+	</array>
 </dict>
 </plist>
