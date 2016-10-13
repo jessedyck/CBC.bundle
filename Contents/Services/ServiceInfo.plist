@@ -2,12 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Search</key>
+	<key>URL</key>
 	<dict>
 		<key>CBC</key>
 		<dict>
-			<key>Identifier</key>
-			<string>com.plexapp.plugins.cbcnewsnetwork</string>
+			<key>URLPatterns</key>
+			<array>
+				<!-- <string>^http:\/\/www\.cbc\.ca\/player\/play\/.+</string> -->
+				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/.+</string>
+			</array>
 		</dict>
 	</dict>
 </dict>
