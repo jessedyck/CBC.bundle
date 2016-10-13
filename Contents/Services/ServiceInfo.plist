@@ -9,7 +9,7 @@
 			<key>URLPatterns</key>
 			<array>
 				<!-- <string>^http:\/\/www\.cbc\.ca\/player\/play\/.+</string> -->
-				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/.+</string>
+				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/browse\/.+</string>
 			</array>
 		</dict>
 	</dict>
