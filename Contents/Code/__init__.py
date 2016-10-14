@@ -74,13 +74,13 @@ def Shows(link=SHOWS_LIST, offset=0):
         title = show.xpath('.//title')[0].text
 
         # Link to the show episode/series list
-        link = show.xpath('.//link')[0].text
+        show_link = show.xpath('.//link')[0].text
 
         thumbs = GetThumbsFromElement(show.xpath('.//media:thumbnail', namespaces=NAMESPACES))
 
 
         oc.add(DirectoryObject(
-            key = Callback(DisplayShowItems, title=title, link=link),
+            key = Callback(DisplayShowItems, title=title, link=show_link),
             thumb = Resource.ContentsOfURLWithFallback(url=thumbs),
             title = title
         ))
