@@ -10,6 +10,7 @@ ICON = 'icon-default.jpg'
 
 SHOWS_LIST  = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/babb23ae-fe47-40a0-b3ed-cdc91e31f3d6'
 DOCS_LIST = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/d1c2427d-988b-4111-a63a-fffad4406ac7'
+KIDS_LIST = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/d322ffe3-d8fc-40f0-a80a-a93239de3876'
 RESULTS_PER_PAGE = 30
 NAMESPACES = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/'}
 
@@ -38,6 +39,11 @@ def MainMenu():
 
     oc.add(DirectoryObject(key=Callback(Shows, link=DOCS_LIST),
         title='Docs',
+        thumb = R(ICON)
+    ))
+
+    oc.add(DirectoryObject(key=Callback(Shows, link=KIDS_LIST),
+        title='Kids',
         thumb = R(ICON)
     ))
 
