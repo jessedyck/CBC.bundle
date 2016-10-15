@@ -4,12 +4,19 @@
 <dict>
 	<key>URL</key>
 	<dict>
+		<key>WatchCBC</key>
+		<dict>
+			<key>URLPatterns</key>
+			<array>
+				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/browse\/.+</string>
+				<string>^http(s)?:\/\/watch\.cbc\.ca\/.+</string>
+			</array>
+		</dict>
 		<key>CBC</key>
 		<dict>
 			<key>URLPatterns</key>
 			<array>
-				<!-- <string>^http:\/\/www\.cbc\.ca\/player\/play\/.+</string> -->
-				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/browse\/.+</string>
+				<string>^http:\/\/www\.cbc\.ca\/player\/play\/.+</string>
 			</array>
 		</dict>
 	</dict>
