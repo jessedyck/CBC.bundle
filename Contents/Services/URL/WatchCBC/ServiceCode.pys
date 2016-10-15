@@ -1,7 +1,10 @@
+import re
+
 AUTH_URL = 'https://api-cbc.cloud.clearleap.com/cloffice/client/device/register'
 AUTH_DATA = '<device><type>web</type></device>'
 AudioStreamObject.language_code = Locale.Language.English
 NAMESPACES = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/'}
+BASE_URL = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/'
 
 #### AUTH DATA/CACHE
 # Since it appears the global Dict and Data storage isn't available in a URL Service,
@@ -41,20 +44,32 @@ AUTH_CACHE = {}
 #
 # 8) Final playlist URL to play media
 # 	http://v.watch.cbc.ca/p//38e815a-009d46e060f//CBC_BEING_ERICA_SEASON_01_S01E01-v1-8852479/segments/CBC_BEING_ERICA_SEASON_01_S01E01_v7/prog_index.m3u8
-
-# curl "http://macmini.local:32400/system/services/url/lookup?url=http%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ"
-# curl "http://macmini.local:32400/system/services/url/lookup?url=https%3A%2F%2Fapi-cbc.cloud.clearleap.com%2Fcloffice%2Fclient%2Fweb%2Fbrowse%2F9536e9fb-84f4-4637-afa3-3500b05f3dc3"
+#
+# 9) CBC front-end web page episode URL:
+#	http://watch.cbc.ca/kims-convenience/-/episode-1/38e815a-00ade4014dc
+#	http://watch.cbc.ca/this-hour-has-22-minutes/season-24/episode-2/38e815a-00afd5b8702
 
 
 ####################################################################################################
 def NormalizeURL(url):
+	Log('Normalizing Watch.CBC.ca URL:' + url)
+	# For watch.cbc.ca URLs, extract the GUID at the end of the URL
+	# Eg: http://watch.cbc.ca/kims-convenience/-/episode-1/38e815a-00ade4014dc
+	if re.search('^http(s?):\/\/watch\.cbc\.ca\/.+', url):
+		try:
+			new_url = url.rsplit('/', 1)[1]
+			new_url = BASE_URL + new_url
+			url = new_url
+		except:
+			Log('Could not convert watch.cbc.ca URL into an API URL. Given URL: ' + url)
+			raise Ex.MediaNotAvailable
 
 	return url.split('?')[0]
 
 ####################################################################################################
 # Example URL: https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/38e815a-009d9df1ce0
 def MetadataObjectForURL(url):
-
+	Log('Getting metadata for Watch.CBC.ca URL:' + url)
 	try:
 		video_data = XML.ElementFromURL(url)
 	except:
@@ -251,7 +266,32 @@ def GetAuthHeaders(invalidate=False):
 		Log.Error ('Error authing. Response from server: ' + str(e.code))
 		raise Ex.MediaNotAuthorized
 
+####################################################################################################
+# Take a watch.cbc.ca URL and convert it to an API URL
+#
+def ResolveAPIUrlFromWebURL(url):
+	try:
+		video_data = HTML.ElementFromURL(url)
+	except:
+		raise Ex.MediaNotAvailable
 
+	# Get div.episode-layout element, and extract the ID from the data-reactid attr
+	elm = video_data.xpath('//div[contains(@class, "episode-layout")]')
+
+	if (elm):
+		elm = elm[0].get('class')
+	else:
+		Log.Error ('Could not find a video at this URL')
+		raise Ex.MediaNotAvailable
+
+
+	video_id = elm.split('$').split('.')[0]
+
+	if (video_id):
+		return BASE_URL + video_id;
+	else:
+		Log.Error ('Could not find a video at this URL')
+		raise Ex.MediaNotAvailable
 
 ####################################################################################################
 # The below functions likely aren't needed, as Plex seems to parse the m3u8 files
