@@ -261,8 +261,9 @@ def RadioCategories(url):
 
     for cat in cats:
         oc.add(DirectoryObject(
-            key = Callback(RadioCategoryItems, url=RADIO_FE_CATS + cat['slugName'] + '/', title=cat['name']),
-            title = cat['name']
+            key = Callback(RadioItems, url=RADIO_CATS + cat['slugName'], title=cat['name']),
+            title = cat['name'],
+            thumb = Resource.ContentsOfURLWithFallback(cat['image'])
         ))
 
     if len(oc) < 1:
@@ -275,46 +276,119 @@ def RadioCategories(url):
 # 
 # Can't find an API URL to provide a list of shows in category, so use the Front End instead
 # Start pageoffset at 1 since the first run-thru gets us the first page of results
-@route('/video/cbc/radiocategoryitems')
-def RadioCategoryItems(url, title=None, pageoffset=1):
+@route('/video/cbc/radioitems')
+def RadioItems(url, title=None, pageoffset=1):
     oc = ObjectContainer(title2=title or 'CBC Radio')
 
-    url_new = url + 'clips/' + str(pageoffset) + '?format=json'
+    # There does not seem to be a way to override this in the API
+    pagesize = 10;
+
+    url_new = url + '/clips/?page=' + str(pageoffset)
     Log('Loading radio items at URL: ' + url_new)
 
-    page_json = JSON.ObjectFromURL(url_new)
-
-    if (page_json['html']):
-        page = HTML.ElementFromString(page_json['html'])
-    else:
-        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
-
-
-    items = page.xpath('//li[@class="medialist-item"]')
+    items = JSON.ObjectFromURL(url_new)
 
     if len(items) < 1:
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
-    for item in items:
-        link_elm = item.xpath('.//div[@class="medialist-item-title"]//a')[0]
+    # {
+    #     "id": 159140,
+    #     "showId": 7,
+    #     "title": "CBC News: Hourly Edition for 2016/10/17 at 22:00 EDT",
+    #     "description": "The latest national and international news, updated every hour",
+    #     "duration": 270,
+    #     "durationPretty": "00:04:30",
+    #     "url": "http://podcast.cbc.ca/mp3/hourlynews.mp3",
+    #     "clipType": "Segment",
+    #     "releasedAt": 1476756000000,
+    #     "releasedAtPretty": "2016-10-18 02:00 AM GMT",
+    #     "categories": [{
+    #         "id": 1,
+    #         "name": "News",
+    #         "image": "http://www.cbc.ca/radio/includes/apps/images/category/category-news.jpg",
+    #         "slugName": "news"
+    #     }],
+    #     "airdates": [1410118677644],
+    #     "podcastable": false,
+    #     "geoTarget": "Global"
+    # }
 
+    for item in items:
+
+        # Could use the URL service here, but we already have all the data we need,
+        # so instead of causing extra requets, just start playing file
         oc.add(TrackObject(
-            url = link_elm.get('href'),
-            title = link_elm.text
+            #url =  RADIO_FE_SHOWS + item['clipType'].lower() + '/' + str(item['id']),
+            key = item['url'],
+            rating_key = item['url'],
+            title = item['title'],
+            summary = item['description'],
+            duration = int(item['duration']) * 1000,
+            originally_available_at = Datetime.ParseDate(item['releasedAtPretty']).date()
         ))
 
-    # If returned items is not less than page size, there's likely more results.
-    # There would be a case where this will cause a false positive, but I can't see another way
-    # to detect if we have more items
-    more = page_json['meta'] and not page_json['meta']['clipCount'] < page_json['meta']['pageSize']
-
-    if more:
+    if not len(items) < pagesize:
         oc.add(DirectoryObject(
-            key = Callback(RadioCategoryItems, url=url, pageoffset=int(pageoffset) + 1),
+            key = Callback(RadioItems, url=url, pageoffset=int(pageoffset) + 1),
             title = 'More...'
         ))
     else:
         Log('No more items found at URL: ' + url)
+
+    return oc
+
+####################################################################################################
+## Function used for CBC Radio
+# 
+@route('/video/cbc/radioshows')
+def RadioShows(url, pageoffset=1):
+    oc = ObjectContainer(title2='CBC Radio Shows')
+
+    # There does not seem to be a way to override this in the API
+    pagesize = 10;
+
+    shows = JSON.ObjectFromURL(url + '?page=' + str(pageoffset))
+
+    # {
+    #     "id": 10,
+    #     "title": "CBC News: World Report",
+    #     "description": "World Report is news that has broken overnight with a look ahead to the day's expected events. The program features the latest international news, as well as the top domestic stories. It is also an outlet for CBC journalists to break original stories. ",
+    #     "network": "Radio One",
+    #     "thumbnail": "http://www.cbc.ca/radio/podcasts/images/320x320/worldreport-podcast-template.jpg",
+    #     "image": "http://www.cbc.ca/radio/podcasts/images/950x950/worldreport-podcast-template.jpg",
+    #     "coverImage": "http://www.cbc.ca/radio/includes/apps/images/coverimage/worldreport-header.jpg",
+    #     "webUrl": "http://www.cbc.ca/worldreport//",
+    #     "backgroundImage": "http://www.cbc.ca/radio/includes/apps/images/showgradientbg/worldreport-gradient-bg.jpg",
+    #     "clipCount": 1,
+    #     "sortTitle": "CBC News: World Report",
+    #     "slugTitle": "cbc-news-world-report",
+    #     "downloadPermitted": true,
+    #     "hostImage": "http://www.cbc.ca/radio/podcasts/images/hosts/World-Report-circle.png",
+    #     "hosts": [{
+    #         "id": 10, 
+    #         "name": "David Common"
+    #     }, {
+    #         "id": 141,
+    #         "name": "Marcia Young"
+    #     }]
+    # }
+
+    if len(shows) < 1:
+        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
+
+    for show in shows:
+        oc.add(DirectoryObject(
+            key=Callback(RadioItems, url=RADIO_SHOWS + show['slugTitle'], title=show['title']),
+            title=show['title'],
+            thumb=Resource.ContentsOfURLWithFallback(show['thumbnail']),
+            art=Resource.ContentsOfURLWithFallback(show['backgroundImage'], None)
+        ))
+
+    if not len(shows) < pagesize:
+        oc.add(DirectoryObject(
+            key = Callback(RadioShows, url=url, pageoffset=int(pageoffset) + 1),
+            title = 'More...'
+        ))
 
     return oc
 
