@@ -20,6 +20,15 @@ RESULTS_PER_PAGE    = 30
 NAMESPACES          = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/'}
 SHOW_TYPES          = ['season', 'series', 'seasonless_show']
 
+#### Radio Globals
+RADIO_FE_BASE = 'http://www.cbc.ca/listen/'
+RADIO_FE_CATS = RADIO_FE_BASE + 'categories/'
+RADIO_FE_SHOWS = RADIO_FE_BASE + 'shows/'
+RADIO_BASE = 'https://api-gw.radio-canada.ca/audio/v1/'
+RADIO_CATS = RADIO_BASE + 'categories/'
+RADIO_SHOWS = RADIO_BASE + 'shows/'
+RADIO_CLIPS = RADIO_BASE + 'clips/'
+
 ### Old cbc.ca player globals
 CBC_CA_BASE        = 'http://www.cbc.ca'
 PLAYER_URL          = CBC_CA_BASE + '/player/%s'
@@ -74,6 +83,11 @@ def MainMenu():
             title = category
         ))
 
+
+    # Add Radio items
+    oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories'))
+    oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows'))
+    #oc.add(DirectoryObject(key=Callback(RadioLive), title='Radio Live'))
 
     # oc.add(SearchDirectoryObject(
     #     identifier = 'com.plexapp.plugins.cbcnewsnetwork',
@@ -222,6 +236,87 @@ def DisplayShowItems(title=None, link=None, offset=0):
         return ObjectContainer(header="Sorry", message="There aren't any videos currently available for this show.")
     else:
         return oc
+
+####################################################################################################
+## Function used for CBC Radio
+@route('/video/cbc/radiocategories')
+def RadioCategories(url):
+
+    oc = ObjectContainer(title2='CBC Radio Categories')
+
+    try:
+        cats = JSON.ObjectFromURL(url)
+
+        if (len(cats) < 1):
+            Log('No Radio categories found at URL: ' + url)
+            raise Ex.MediaNotAvailable
+    except:
+        return ObjectContainer(header="No Categories", message="Sorry, no categories were found.")
+
+    # Response is an array of objects. EG:
+    #   "id": 1,
+    #   "name": "News",
+    #   "image": "http://www.cbc.ca/radio/includes/apps/images/category/category-news.jpg",
+    #   "slugName": "news"
+
+    for cat in cats:
+        oc.add(DirectoryObject(
+            key = Callback(RadioCategoryItems, url=RADIO_FE_CATS + cat['slugName'] + '/', title=cat['name']),
+            title = cat['name']
+        ))
+
+    if len(oc) < 1:
+        return ObjectContainer(header="No Categories", message="Sorry, no categories were found.")
+    else:
+        return oc
+
+####################################################################################################
+## Function used for CBC Radio
+# 
+# Can't find an API URL to provide a list of shows in category, so use the Front End instead
+# Start pageoffset at 1 since the first run-thru gets us the first page of results
+@route('/video/cbc/radiocategoryitems')
+def RadioCategoryItems(url, title=None, pageoffset=1):
+    oc = ObjectContainer(title2=title or 'CBC Radio')
+
+    url_new = url + 'clips/' + str(pageoffset) + '?format=json'
+    Log('Loading radio items at URL: ' + url_new)
+
+    page_json = JSON.ObjectFromURL(url_new)
+
+    if (page_json['html']):
+        page = HTML.ElementFromString(page_json['html'])
+    else:
+        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
+
+
+    items = page.xpath('//li[@class="medialist-item"]')
+
+    if len(items) < 1:
+        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
+
+    for item in items:
+        link_elm = item.xpath('.//div[@class="medialist-item-title"]//a')[0]
+
+        oc.add(TrackObject(
+            url = link_elm.get('href'),
+            title = link_elm.text
+        ))
+
+    # If returned items is not less than page size, there's likely more results.
+    # There would be a case where this will cause a false positive, but I can't see another way
+    # to detect if we have more items
+    more = page_json['meta'] and not page_json['meta']['clipCount'] < page_json['meta']['pageSize']
+
+    if more:
+        oc.add(DirectoryObject(
+            key = Callback(RadioCategoryItems, url=url, pageoffset=int(pageoffset) + 1),
+            title = 'More...'
+        ))
+    else:
+        Log('No more items found at URL: ' + url)
+
+    return oc
 
 
 ####################################################################################################
