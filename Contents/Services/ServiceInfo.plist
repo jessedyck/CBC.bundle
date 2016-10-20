@@ -8,7 +8,7 @@
 		<dict>
 			<key>URLPatterns</key>
 			<array>
-				<string>^https:\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/browse\/.+</string>
+				<string>^http(s?):\/\/api-cbc\.cloud\.clearleap.com\/cloffice\/client\/web\/browse\/.+</string>
 				<string>^http(s)?:\/\/watch\.cbc\.ca\/.+</string>
 			</array>
 		</dict>
@@ -16,7 +16,15 @@
 		<dict>
 			<key>URLPatterns</key>
 			<array>
-				<string>^http:\/\/www\.cbc\.ca\/player\/play\/.+</string>
+				<string>^http(s?):\/\/www\.cbc\.ca\/player\/play\/.+</string>
+			</array>
+		</dict>
+		<key>CBCRadio</key>
+		<dict>
+			<key>URLPatterns</key>
+			<array>
+				<string>^http(s?):\/\/(www\.)?cbc\.ca\/listen\/.+</string>
+				<string>^http(s?):\/\/api\-gw\.radio\-canada\.ca\/audio\/v1\/.+</string>
 			</array>
 		</dict>
 	</dict>

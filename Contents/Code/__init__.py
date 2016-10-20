@@ -28,6 +28,11 @@ RADIO_BASE = 'https://api-gw.radio-canada.ca/audio/v1/'
 RADIO_CATS = RADIO_BASE + 'categories/'
 RADIO_SHOWS = RADIO_BASE + 'shows/'
 RADIO_CLIPS = RADIO_BASE + 'clips/'
+RADIO_LIVE_URL = 'http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio'
+RADIO_LIVE_STATIONS = {
+    'radioone': [],
+    'radiotwo': []
+}
 
 ### Old cbc.ca player globals
 CBC_CA_BASE        = 'http://www.cbc.ca'
@@ -87,7 +92,8 @@ def MainMenu():
     # Add Radio items
     oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories'))
     oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows'))
-    #oc.add(DirectoryObject(key=Callback(RadioLive), title='Radio Live'))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One'))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two'))
 
     # oc.add(SearchDirectoryObject(
     #     identifier = 'com.plexapp.plugins.cbcnewsnetwork',
@@ -394,6 +400,35 @@ def RadioShows(url, pageoffset=1):
 
 
 ####################################################################################################
+## Function used for CBC Radio
+# 
+@route('/video/cbc/radiolive')
+def RadioLive (radio='one'):
+    oc = ObjectContainer(title2='CBC Live Radio')
+
+    # Can't get live streams? Bail
+    if not GetRadioLiveStations():
+        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
+
+    for stream in RADIO_LIVE_STATIONS['radio' + radio]:
+        Log('Got station: ' + stream['title'])
+
+        url = GetRadioHLSStream(stream['content'])
+
+        if not url:
+            Log('Skipping station: ' + stream['title'])
+            continue
+
+        oc.add(TrackObject(
+            key = url,
+            rating_key = url,
+            title = stream['title'],
+        ))
+
+    return oc
+
+
+####################################################################################################
 ## Function used for cbc.ca player
 @route('/video/cbc/hnic')
 def HockeyNightInCanada():
@@ -623,3 +658,35 @@ def GetThumbsFromElement(elm):
 ####################################################################################################
 def GetThumbsSortKey (item):
     return item['resolution']
+
+####################################################################################################
+def GetRadioLiveStations ():
+    global RADIO_LIVE_STATIONS
+
+    # if our 'cache' is already primed, bail early
+    if (len(RADIO_LIVE_STATIONS['radioone']) > 0):
+        return True
+
+    streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL)
+
+    try:
+        streams = streams_json['entries']
+
+    except:
+        Log('Error getting CBC Radio streams')
+        return False
+
+    for stream in streams:
+        if (stream['cbc$network'] == 'Radio One'):
+            RADIO_LIVE_STATIONS['radioone'].append(stream)
+        else:
+            RADIO_LIVE_STATIONS['radiotwo'].append(stream)
+
+    return True
+
+def GetRadioHLSStream (item):
+    for i in item:
+        if 'HLS' in i['assetTypes']:
+            return i['streamingUrl']
+
+    return False
