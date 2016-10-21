@@ -25,6 +25,7 @@
 			<array>
 				<string>^http(s?):\/\/(www\.)?cbc\.ca\/listen\/.+</string>
 				<string>^http(s?):\/\/api\-gw\.radio\-canada\.ca\/audio\/v1\/.+</string>
+				<string>^http(s?):\/\/tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio(.+)?</string>
 			</array>
 		</dict>
 	</dict>

@@ -280,7 +280,6 @@ def RadioCategories(url):
 ####################################################################################################
 ## Function used for CBC Radio
 # 
-# Can't find an API URL to provide a list of shows in category, so use the Front End instead
 # Start pageoffset at 1 since the first run-thru gets us the first page of results
 @route('/video/cbc/radioitems')
 def RadioItems(url, title=None, pageoffset=1):
@@ -320,13 +319,8 @@ def RadioItems(url, title=None, pageoffset=1):
     # }
 
     for item in items:
-
-        # Could use the URL service here, but we already have all the data we need,
-        # so instead of causing extra requets, just start playing file
         oc.add(TrackObject(
-            #url =  RADIO_FE_SHOWS + item['clipType'].lower() + '/' + str(item['id']),
-            key = item['url'],
-            rating_key = item['url'],
+            url = RADIO_CLIPS + str(item['id']),
             title = item['title'],
             summary = item['description'],
             duration = int(item['duration']) * 1000,
@@ -407,21 +401,14 @@ def RadioLive (radio='one'):
     oc = ObjectContainer(title2='CBC Live Radio')
 
     # Can't get live streams? Bail
-    if not GetRadioLiveStations():
+    if not PopulateRadioLiveStations():
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
     for stream in RADIO_LIVE_STATIONS['radio' + radio]:
         Log('Got station: ' + stream['title'])
 
-        url = GetRadioHLSStream(stream['content'])
-
-        if not url:
-            Log('Skipping station: ' + stream['title'])
-            continue
-
         oc.add(TrackObject(
-            key = url,
-            rating_key = url,
+            url = RADIO_LIVE_URL + '/' + str(stream['guid']),
             title = stream['title'],
         ))
 
@@ -660,7 +647,7 @@ def GetThumbsSortKey (item):
     return item['resolution']
 
 ####################################################################################################
-def GetRadioLiveStations ():
+def PopulateRadioLiveStations ():
     global RADIO_LIVE_STATIONS
 
     # if our 'cache' is already primed, bail early
@@ -683,10 +670,3 @@ def GetRadioLiveStations ():
             RADIO_LIVE_STATIONS['radiotwo'].append(stream)
 
     return True
-
-def GetRadioHLSStream (item):
-    for i in item:
-        if 'HLS' in i['assetTypes']:
-            return i['streamingUrl']
-
-    return False

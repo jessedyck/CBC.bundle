@@ -3,14 +3,28 @@ import re
 # EXAMPLE URLs for service: 
 # 1) Front end browser URL: http://www.cbc.ca/listen/shows/because-news/segment/10456353
 #
-# 2) API URL https://api-gw.radio-canada.ca/audio/v1/clips/10456353?inline=show
-#	Adding ?inline=show to the URL also includes info on the show that the track belongs to
+# 2) https://api-gw.radio-canada.ca/audio/v1/clips/10456353?inline=show
+#	Specific audio clip by ID; Adding ?inline=show to the URL also includes info on the show that the track belongs to
 #
-# 3) http://www.cbc.ca/listen/categories/news/clips/3?format=json
+# 3) https://api-gw.radio-canada.ca/audio/v1/shows/25
+#	Details for show ID 25
+#
+# 4) https://api-gw.radio-canada.ca/audio/v1/shows/25/clips
+#	List of clips for show ID 25
+#
+# 5) http://www.cbc.ca/listen/categories/news/clips/3?format=json
 #	Third page of News category results
 #
-# http://www.cbc.ca/programguide/live.do?output=xml&networkKey=cbc_radio_one&locationKey=winnipeg
-# http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio
+# 6) http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio
+#	Index of all live-streaming stations
+# 
+# 7) http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio/673903171524
+# 	Specific live-stream station (CBC Radio One: Prince George in this case)
+#
+# 8) http://www.cbc.ca/programguide/live.do?output=xml&networkKey=cbc_radio_one&locationKey=winnipeg
+#	http://www.cbc.ca/programguide/next.do?output=xml&networkKey=cbc_radio_2&locationKey=edmonton
+#	XML output with current or next program name
+
 
 BASE_URL = 'https://api-gw.radio-canada.ca/audio/v1/clips/'
 AudioStreamObject.language_code = Locale.Language.English
@@ -28,33 +42,39 @@ def NormalizeURL(url):
 			Log('Could not convert cbc.ca/listen URL into an API URL. Given URL: ' + url)
 			raise Ex.MediaNotAvailable
 
-	# if (url.endswith('listen'))
-	# 	url = url + '/'
 	return url
 
 ####################################################################################################
 def MetadataObjectForURL(url):
 	Log('Getting metadata for CBC Radio URL: ' + url)
+
+	audio_type = GetAudioType(url)
+	
 	try:
-		page = JSON.ObjectFromURL(url + '?inline=show')
+		if (audio_type == 'm3u8'):
+			page = JSON.ObjectFromURL(url)
+		else:
+			page = JSON.ObjectFromURL(url + '?inline=show')
 	except:
 		raise Ex.MediaNotAvailable
 	
 	title = page['title']
-	summary = page['description']
 
-	# TODO: This is lazy; should get the thumbnail for the episode somehow instead of for the show
-	thumb = page['show']['thumbnail'] 
-	date = Datetime.ParseDate(page['releasedAtPretty'])
-	duration = int(page['duration']) * 1000
-
-	return TrackObject(
-		title = title,
-		summary = summary,
-		originally_available_at	= date.date(),
-		duration = duration,
-		thumb = Resource.ContentsOfURLWithFallback(url=thumb)
+	to = TrackObject(
+		title = title
 	)
+
+	if (audio_type == 'mp3'):
+		# TODO: This is lazy; should get the thumbnail for the episode somehow instead of for the show
+		to.thumb = Resource.ContentsOfURLWithFallback(url=page['show']['thumbnail'])
+		to.originally_available_at = Datetime.ParseDate(page['releasedAtPretty'])
+		to.duration = int(page['duration']) * 1000
+		to.summary = page['description']
+
+	#elif (audio_type == 'm3u8'):
+		# TODO: Add description by getting the current program name
+
+	return to
 
 ####################################################################################################
 def MediaObjectsForURL(url):
@@ -63,23 +83,57 @@ def MediaObjectsForURL(url):
 
 	return [
 		MediaObject(
+			container = Container.MP3,
+			audio_codec = AudioCodec.MP3,
+			audio_channels = 2,
 			parts = [
-				PartObject(key=Callback(PlayHLS, url=url))
+				PartObject(key=Callback(PlayMedia, url=url, ext=GetAudioType(url)))
 			]
 		)
 	]
 
 ####################################################################################################
 @indirect
-def PlayHLS(url):
+def PlayMedia(url, **kwargs):
 	Log('Getting media item URL for CBC Radio URL: ' + url)
+	
+	#http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio/673903171524
+	audio_type = GetAudioType(url)
+	
 	try:
-		page = JSON.ObjectFromURL(url + '?inline=show')
+		if (audio_type == 'm3u8'):
+			page = JSON.ObjectFromURL(url)
+		else:
+			page = JSON.ObjectFromURL(url + '?inline=show')
 	except:
 		raise Ex.MediaNotAvailable
 
-	if not page['url']:
+	if audio_type == 'm3u8':
+		audio_url = GetRadioHLSStream(page['content'])
+
+	else:
+		audio_url = page['url']
+
+
+	if not audio_url:
 		raise Ex.MediaNotAvailable
 
-	Log('Returning CBC Radio media item at: ' + page['url'])
-	return IndirectResponse(VideoClipObject, key=page['url'])
+	Log('Returning CBC Radio media item at: ' + audio_url)
+	return IndirectResponse(VideoClipObject, key=audio_url)
+
+####################################################################################################
+def GetAudioType (url):
+	if (re.match('^http(s?):\/\/tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio(.+)?', url)):
+		return 'm3u8'
+	else:
+		return 'mp3'
+
+####################################################################################################
+# Takes the stream['content'] array of media content from a live stream JSON entry, and 
+# returns the url of the containing HLS stream
+def GetRadioHLSStream (item):
+    for i in item:
+        if 'HLS' in i['assetTypes']:
+            return i['streamingUrl']
+
+    return False
