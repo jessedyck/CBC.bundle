@@ -90,10 +90,10 @@ def MainMenu():
 
 
     # Add Radio items
-    oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories'))
-    oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows'))
-    oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One'))
-    oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two'))
+    oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories', thumb=R('cbc-radio.jpg')))
+    oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows', thumb=R('cbc-radio.jpg')))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One', thumb=R('cbc-radio.jpg')))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two', thumb=R('cbc-radio.jpg')))
 
     # oc.add(SearchDirectoryObject(
     #     identifier = 'com.plexapp.plugins.cbcnewsnetwork',
@@ -330,7 +330,8 @@ def RadioItems(url, title=None, pageoffset=1):
     if not len(items) < pagesize:
         oc.add(DirectoryObject(
             key = Callback(RadioItems, url=url, pageoffset=int(pageoffset) + 1),
-            title = 'More...'
+            title = 'More...',
+            thumb=R('cbc-radio.jpg')
         ))
     else:
         Log('No more items found at URL: ' + url)
@@ -380,14 +381,15 @@ def RadioShows(url, pageoffset=1):
         oc.add(DirectoryObject(
             key=Callback(RadioItems, url=RADIO_SHOWS + show['slugTitle'], title=show['title']),
             title=show['title'],
-            thumb=Resource.ContentsOfURLWithFallback(show['thumbnail']),
-            art=Resource.ContentsOfURLWithFallback(show['backgroundImage'], None)
+            thumb = Resource.ContentsOfURLWithFallback(url=show['thumbnail'], fallback=R('cbc-radio.jpg')),
+            art=Resource.ContentsOfURLWithFallback(show['backgroundImage'])
         ))
 
     if not len(shows) < pagesize:
         oc.add(DirectoryObject(
             key = Callback(RadioShows, url=url, pageoffset=int(pageoffset) + 1),
-            title = 'More...'
+            title = 'More...',
+            thumb=R('cbc-radio.jpg')
         ))
 
     return oc
@@ -409,7 +411,8 @@ def RadioLive (radio='one'):
 
         oc.add(TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
-            title = stream['title'],
+            title = stream['cbc$name'],
+            thumb = Resource.ContentsOfURLWithFallback(url=stream['thumbnails'], fallback=R('cbc-radio.jpg')) if stream['thumbnails'] else R('cbc-radio.jpg')
         ))
 
     return oc
