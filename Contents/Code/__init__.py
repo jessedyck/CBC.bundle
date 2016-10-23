@@ -345,10 +345,9 @@ def RadioItems(url, title=None, pageoffset=1):
 def RadioShows(url, pageoffset=1):
     oc = ObjectContainer(title2='CBC Radio Shows')
 
-    # There does not seem to be a way to override this in the API
-    pagesize = 10;
+    pagesize = 30;
 
-    shows = JSON.ObjectFromURL(url + '?page=' + str(pageoffset))
+    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(pagesize) + '&page=' + str(pageoffset))
 
     # {
     #     "id": 10,
@@ -385,6 +384,8 @@ def RadioShows(url, pageoffset=1):
             art=Resource.ContentsOfURLWithFallback(show['backgroundImage'])
         ))
 
+    # As long as the number of shows returned is not less than the page size, 
+    # assume we have more pages
     if not len(shows) < pagesize:
         oc.add(DirectoryObject(
             key = Callback(RadioShows, url=url, pageoffset=int(pageoffset) + 1),
@@ -400,7 +401,7 @@ def RadioShows(url, pageoffset=1):
 # 
 @route('/video/cbc/radiolive')
 def RadioLive (radio='one'):
-    oc = ObjectContainer(title2='CBC Live Radio')
+    oc = ObjectContainer(title2='CBC Radio ' + radio.title())
 
     # Can't get live streams? Bail
     if not PopulateRadioLiveStations():
