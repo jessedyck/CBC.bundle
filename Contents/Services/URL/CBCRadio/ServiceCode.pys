@@ -51,7 +51,7 @@ def MetadataObjectForURL(url):
 	audio_type = GetAudioType(url)
 	
 	try:
-		if (audio_type == 'm3u8'):
+		if (audio_type == 'live'):
 			page = JSON.ObjectFromURL(url)
 		else:
 			page = JSON.ObjectFromURL(url + '?inline=show')
@@ -61,18 +61,33 @@ def MetadataObjectForURL(url):
 	title = page['title']
 
 	to = TrackObject(
-		title = title
 	)
 
-	if (audio_type == 'mp3'):
+	if (audio_type == 'ondemand'):
 		# TODO: This is lazy; should get the thumbnail for the episode somehow instead of for the show
 		to.thumb = Resource.ContentsOfURLWithFallback(url=page['show']['thumbnail'])
 		to.originally_available_at = Datetime.ParseDate(page['releasedAtPretty'])
 		to.duration = int(page['duration']) * 1000
 		to.summary = page['description']
+		to.title = title
 
-	#elif (audio_type == 'm3u8'):
-		# TODO: Add description by getting the current program name
+	elif (audio_type == 'live'):
+		to.title = page['cbc$name'] + ' ' + page['cbc$network']
+		to.artist = page['cbc$name']
+		to.album = page['cbc$network']
+
+		if page['thumbnails']:
+			to.thumb = Resoruce.ContentsOfURLWithFallback(url=page['thumbnails'])
+
+		metadata_url = GetLiveMetadataURL(page['content'])
+
+		if (metadata_url):
+			metadata = XML.ElementFromURL(url=metadata_url, cacheTime=0)
+			
+			program_name = metadata.xpath('//name/text()')
+
+			if (len(program_name) > 0):
+				to.summary = program_name[0]
 
 	return to
 
@@ -87,29 +102,27 @@ def MediaObjectsForURL(url):
 			audio_codec = AudioCodec.MP3,
 			audio_channels = 2,
 			parts = [
-				PartObject(key=Callback(PlayMedia, url=url, ext=GetAudioType(url)))
+				PartObject(key=Callback(PlayMedia, url=url, ext='MP3'))
 			]
 		)
 	]
 
 ####################################################################################################
-@indirect
 def PlayMedia(url, **kwargs):
 	Log.Debug('Getting media item URL for CBC Radio URL: ' + url)
 	
-	#http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio/673903171524
 	audio_type = GetAudioType(url)
 	
 	try:
-		if (audio_type == 'm3u8'):
+		if (audio_type == 'live'):
 			page = JSON.ObjectFromURL(url)
 		else:
 			page = JSON.ObjectFromURL(url + '?inline=show')
 	except:
 		raise Ex.MediaNotAvailable
 
-	if audio_type == 'm3u8':
-		audio_url = GetRadioHLSStream(page['content'])
+	if audio_type == 'live':
+		audio_url = GetLiveMP3StreamURL(page['content'])
 
 	else:
 		audio_url = page['url']
@@ -118,23 +131,35 @@ def PlayMedia(url, **kwargs):
 	if not audio_url:
 		raise Ex.MediaNotAvailable
 
-	Log('Returning CBC Radio media item at: ' + audio_url)
-	return IndirectResponse(VideoClipObject, key=audio_url)
 	Log.Debug('Returning CBC Radio media item at: ' + audio_url)
+	return Redirect(audio_url)
 
 ####################################################################################################
+# Determine if the URL is for a live stream or an ondemand show
+#
+# http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio/673903171524
 def GetAudioType (url):
 	if (re.match('^http(s?):\/\/tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio(.+)?', url)):
-		return 'm3u8'
+		return 'live'
 	else:
-		return 'mp3'
+		return 'ondemand'
 
 ####################################################################################################
 # Takes the stream['content'] array of media content from a live stream JSON entry, and 
-# returns the url of the containing HLS stream
-def GetRadioHLSStream (item):
+# returns the url of the containing MP3 stream
+def GetLiveMP3StreamURL (item):
     for i in item:
-        if 'HLS' in i['assetTypes']:
+        if 'MP3' in i['assetTypes']:
+            return i['streamingUrl']
+
+    return False
+
+####################################################################################################
+# Takes the stream['content'] array of media content from a live stream JSON entry, and 
+# returns the url of the containing Metadata URL
+def GetLiveMetadataURL (item):
+    for i in item:
+        if 'Metadata' in i['assetTypes']:
             return i['streamingUrl']
 
     return False
