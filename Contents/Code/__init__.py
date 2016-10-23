@@ -51,14 +51,14 @@ def Start():
     # Setup the default breadcrumb title for the plugin
     ObjectContainer.title1 = 'CBC'
 
-    Log('Starting up the CBC channel')
+    Log.Debug('Starting up the CBC channel')
 
 
 ####################################################################################################
 @handler('/video/cbc', 'CBC', art=ART, thumb=ICON)
 def MainMenu():
 
-    Log('Displaying CBC Main Menu')
+    Log.Debug('Displaying CBC Main Menu')
 
     oc = ObjectContainer()
 
@@ -155,7 +155,7 @@ def Shows(link=SHOWS_LIST, offset=0):
 @route('/video/cbc/showepisodes')
 def DisplayShowItems(title=None, link=None, offset=0):
     oc = ObjectContainer (title2=title)
-    Log('Show Title: ' + title)
+    Log.Debug('Show Title: ' + title)
 
     page = XML.ElementFromURL(link + '?offset=' + str(offset))
 
@@ -196,7 +196,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
         # First level navigation (eg: list of seasons)
         if (keywords[0] in SHOW_TYPES and not parent_url):
-            Log('Adding a show to the container')
+            Log.Debug('Adding a show to the container')
 
             item_obj = TVShowObject(
                 key = Callback(DisplayShowItems, link=url, title=video_title),
@@ -211,7 +211,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
             # Getting list of seasons
             if ('season' in keywords):
-                Log('Adding a season to the container')
+                Log.Debug('Adding a season to the container')
                 item_obj = SeasonObject(
                     key = Callback(DisplayShowItems, link=url, title=video_title),
                     rating_key = guid,
@@ -222,7 +222,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
         # Video item, possibly episode in season, or seasonless video
         else:
-            Log('Adding a final video to the container')
+            Log.Debug('Adding a final video to the container')
             item_obj = VideoClipObject(
                 url = url,
                 title = video_title,
@@ -254,7 +254,7 @@ def RadioCategories(url):
         cats = JSON.ObjectFromURL(url)
 
         if (len(cats) < 1):
-            Log('No Radio categories found at URL: ' + url)
+            Log.Debug('No Radio categories found at URL: ' + url)
             raise Ex.MediaNotAvailable
     except:
         return ObjectContainer(header="No Categories", message="Sorry, no categories were found.")
@@ -289,7 +289,7 @@ def RadioItems(url, title=None, pageoffset=1):
     pagesize = 10;
 
     url_new = url + '/clips/?page=' + str(pageoffset)
-    Log('Loading radio items at URL: ' + url_new)
+    Log.Debug('Loading radio items at URL: ' + url_new)
 
     items = JSON.ObjectFromURL(url_new)
 
@@ -334,7 +334,7 @@ def RadioItems(url, title=None, pageoffset=1):
             thumb=R('cbc-radio.jpg')
         ))
     else:
-        Log('No more items found at URL: ' + url)
+        Log.Debug('No more items found at URL: ' + url)
 
     return oc
 
@@ -407,7 +407,7 @@ def RadioLive (radio='one'):
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
     for stream in RADIO_LIVE_STATIONS['radio' + radio]:
-        Log('Got station: ' + stream['title'])
+        Log.Debug('Got station: ' + stream['title'])
 
         oc.add(TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
@@ -480,7 +480,7 @@ def LiveSports():
 ## Function used for cbc.ca player
 @route('/video/cbc/category')
 def Category(category=None, link=None):
-    Log('Entering CBC.ca player category. Category: ' + (category or '') + ' Link: ' + (link or ''))
+    Log.Debug('Entering CBC.ca player category. Category: ' + (category or '') + ' Link: ' + (link or ''))
 
     oc = ObjectContainer(title2=category)
 
@@ -532,7 +532,7 @@ def Category(category=None, link=None):
 ## Function used for cbc.ca player
 @route('/video/cbc/show')
 def ShowsMenu(title, link):
-    Log("Entering CBC.ca player shows menu. URL: " + link)
+    Log.Debug("Entering CBC.ca player shows menu. URL: " + link)
 
     oc = ObjectContainer(title2=title)
     page = HTML.ElementFromURL(link)
@@ -578,7 +578,7 @@ def ShowsMenu(title, link):
 ## Function used for cbc.ca player
 @route('/video/cbc/featured')
 def Featured(category=None):
-    Log("Entering CBC.ca player Featured method. Category: " + category)
+    Log.Debug("Entering CBC.ca player Featured method. Category: " + category)
 
     oc = ObjectContainer(title2=category)
     page = HTML.ElementFromURL(PLAYER_URL % category.lower())
@@ -663,7 +663,7 @@ def PopulateRadioLiveStations ():
         streams = streams_json['entries']
 
     except:
-        Log('Error getting CBC Radio streams')
+        Log.Debug('Error getting CBC Radio streams')
         return False
 
     for stream in streams:

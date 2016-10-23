@@ -31,7 +31,7 @@ AudioStreamObject.language_code = Locale.Language.English
 
 ####################################################################################################
 def NormalizeURL(url):
-	Log('Parsing CBC Radio URL: ' + url)
+	Log.Debug('Parsing CBC Radio URL: ' + url)
 
 	if re.search('^http(s?):\/\/(www\.)?cbc\.ca\/listen(\/)?(.+)?', url):
 		try:
@@ -39,14 +39,14 @@ def NormalizeURL(url):
 			new_url = BASE_URL + new_url
 			url = new_url
 		except:
-			Log('Could not convert cbc.ca/listen URL into an API URL. Given URL: ' + url)
+			Log.Debug('Could not convert cbc.ca/listen URL into an API URL. Given URL: ' + url)
 			raise Ex.MediaNotAvailable
 
 	return url
 
 ####################################################################################################
 def MetadataObjectForURL(url):
-	Log('Getting metadata for CBC Radio URL: ' + url)
+	Log.Debug('Getting metadata for CBC Radio URL: ' + url)
 
 	audio_type = GetAudioType(url)
 	
@@ -79,7 +79,7 @@ def MetadataObjectForURL(url):
 ####################################################################################################
 def MediaObjectsForURL(url):
 
-	Log('MediaObects URL: ' + url)
+	Log.Debug('MediaObects URL: ' + url)
 
 	return [
 		MediaObject(
@@ -95,7 +95,7 @@ def MediaObjectsForURL(url):
 ####################################################################################################
 @indirect
 def PlayMedia(url, **kwargs):
-	Log('Getting media item URL for CBC Radio URL: ' + url)
+	Log.Debug('Getting media item URL for CBC Radio URL: ' + url)
 	
 	#http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio/673903171524
 	audio_type = GetAudioType(url)
@@ -120,6 +120,7 @@ def PlayMedia(url, **kwargs):
 
 	Log('Returning CBC Radio media item at: ' + audio_url)
 	return IndirectResponse(VideoClipObject, key=audio_url)
+	Log.Debug('Returning CBC Radio media item at: ' + audio_url)
 
 ####################################################################################################
 def GetAudioType (url):

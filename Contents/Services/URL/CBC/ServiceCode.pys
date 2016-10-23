@@ -8,12 +8,12 @@ AudioStreamObject.language_code = Locale.Language.English
 
 ####################################################################################################
 def NormalizeURL(url):
-	Log('Parsing old CBC.ca URL:' + url)
+	Log.Debug('Parsing old CBC.ca URL:' + url)
 	return url
 
 ####################################################################################################
 def MetadataObjectForURL(url):
-	Log('Getting metadata for old CBC.ca URL:' + url)
+	Log.Debug('Getting metadata for old CBC.ca URL:' + url)
 	try:
 		page = HTML.ElementFromURL(url)
 	except:

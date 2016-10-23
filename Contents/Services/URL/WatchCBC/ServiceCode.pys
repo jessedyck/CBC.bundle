@@ -52,7 +52,7 @@ AUTH_CACHE = {}
 
 ####################################################################################################
 def NormalizeURL(url):
-	Log('Normalizing Watch.CBC.ca URL:' + url)
+	Log.Debug('Normalizing Watch.CBC.ca URL:' + url)
 	# For watch.cbc.ca URLs, extract the GUID at the end of the URL
 	# Eg: http://watch.cbc.ca/kims-convenience/-/episode-1/38e815a-00ade4014dc
 	if re.search('^http(s?):\/\/watch\.cbc\.ca\/.+', url):
@@ -61,7 +61,7 @@ def NormalizeURL(url):
 			new_url = BASE_URL + new_url
 			url = new_url
 		except:
-			Log('Could not convert watch.cbc.ca URL into an API URL. Given URL: ' + url)
+			Log.Debug('Could not convert watch.cbc.ca URL into an API URL. Given URL: ' + url)
 			raise Ex.MediaNotAvailable
 
 	return url.split('?')[0]
@@ -69,7 +69,7 @@ def NormalizeURL(url):
 ####################################################################################################
 # Example URL: https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/38e815a-009d9df1ce0
 def MetadataObjectForURL(url):
-	Log('Getting metadata for Watch.CBC.ca URL:' + url)
+	Log.Debug('Getting metadata for Watch.CBC.ca URL:' + url)
 	try:
 		video_data = XML.ElementFromURL(url)
 	except:
@@ -104,7 +104,7 @@ def MetadataObjectForURL(url):
 	episode = video_data.xpath('.//clearleap:episodeInSeason/text()', namespaces=NAMESPACES)
 	content_rating = video_data.xpath('.//media:rating/text()', namespaces=NAMESPACES)
 	
-	Log('Got video ' + title)
+	Log.Debug('Got video ' + title)
 
 	# Get some images
 	thumb = video_data.xpath('.//media:thumbnail[contains(@profile,"CBC-THUMBNAIL-2X")]', namespaces=NAMESPACES)[0].get('url')
@@ -144,7 +144,7 @@ def MetadataObjectForURL(url):
 ####################################################################################################
 def MediaObjectsForURL(url):
 
-	Log('MediaObects URL: ' + url)
+	Log.Debug('MediaObects URL: ' + url)
 
 	return [
 		MediaObject(
@@ -186,7 +186,7 @@ def PlayHLS(url):
 	try:
 		playlist_response = XML.ElementFromURL(url, headers=headers)
 	except HTTPError, e:
-		Log('Invalidating headers')
+		Log.Debug('Invalidating headers')
 		headers = GetAuthHeaders(invalidate=True)
 
 		try:
@@ -205,7 +205,7 @@ def PlayHLS(url):
 		raise Ex.MediaNotAvailable
 
 	playlist_url = playlist_response[0].text
-	Log('Playlist URL: ' + playlist_url)
+	Log.Debug('Playlist URL: ' + playlist_url)
 
 	#streams = CreateVideoStreams(url)
 
@@ -220,22 +220,22 @@ def PlayHLS(url):
 def GetAuthHeaders(invalidate=False):
 	global AUTH_CACHE
 
-	Log('Starting CBC auth')
+	Log.Debug('Starting CBC auth')
 
 	# Cache auth for 6 hours
 	if (not AUTH_CACHE or not AUTH_CACHE.get('cbc_auth_timestamp') or not AUTH_CACHE.get('cbc_device_token') or not AUTH_CACHE.get('cbc_device_id')):
-		Log('No valid CBC authentation')
+		Log.Debug('No valid CBC authentation')
 		invalidate = True
 	elif (Datetime.Now() > (Datetime.FromTimestamp(AUTH_CACHE['cbc_auth_timestamp']) + Datetime.Delta(hours=6))):
-		Log('CBC Authentication has expired')
+		Log.Debug('CBC Authentication has expired')
 		invalidate = True
 	else:
 		if not invalidate:
-			Log('Cache hit on CBC auth tokens')
+			Log.Debug('Cache hit on CBC auth tokens')
 			return {'X-Clearleap-DeviceToken': AUTH_CACHE['cbc_device_token'], 'X-Clearleap-DeviceId': AUTH_CACHE['cbc_device_id']}
 
 	if invalidate:
-		Log('Invalidating CBC auth tokens')
+		Log.Debug('Invalidating CBC auth tokens')
 		AUTH_CACHE['cbc_device_id'] = None
 		AUTH_CACHE['cbc_device_token'] = None
 		AUTH_CACHE['cbc_auth_timestamp'] = None
@@ -259,7 +259,7 @@ def GetAuthHeaders(invalidate=False):
 		AUTH_CACHE['cbc_device_token'] = auth.xpath('//deviceToken')[0].text
 		AUTH_CACHE['cbc_auth_timestamp'] = Datetime.TimestampFromDatetime(Datetime.Now())
 
-		Log('CBC Authentication successful')
+		Log.Debug('CBC Authentication successful')
  
 		return {'X-Clearleap-DeviceToken': AUTH_CACHE['cbc_device_token'], 'X-Clearleap-DeviceId': AUTH_CACHE['cbc_device_id']}
 	except Ex.HTTPError, e:
