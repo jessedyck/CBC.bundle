@@ -5,12 +5,11 @@
 #Overhauled and updated again by jessedyck
 #Use at your own risk, etc. etc.
 #
-### TODO: Re-add Radio category - this has moved to cbc.ca/listen/
-
 
 #### General globals
 ART  = 'art-default.jpg'
 ICON = 'icon-default.jpg'
+RADIO_ICON = 'cbc-radio.jpg'
 
 #### Watch.cbc.ca globals
 SHOWS_LIST          = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/babb23ae-fe47-40a0-b3ed-cdc91e31f3d6'
@@ -90,10 +89,10 @@ def MainMenu():
 
 
     # Add Radio items
-    oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories', thumb=R('cbc-radio.jpg')))
-    oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows', thumb=R('cbc-radio.jpg')))
-    oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One', thumb=R('cbc-radio.jpg')))
-    oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two', thumb=R('cbc-radio.jpg')))
+    oc.add(DirectoryObject(key=Callback(RadioCategories, url=RADIO_CATS), title='Radio Categories', thumb=R(RADIO_ICON)))
+    oc.add(DirectoryObject(key=Callback(RadioShows, url=RADIO_SHOWS), title='Radio Shows', thumb=R(RADIO_ICON)))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One', thumb=R(RADIO_ICON)))
+    oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two', thumb=R(RADIO_ICON)))
 
     # oc.add(SearchDirectoryObject(
     #     identifier = 'com.plexapp.plugins.cbcnewsnetwork',
@@ -181,7 +180,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
         # THUMBNAIL size exists on episodes, but not on seasons
         # If BANNER size fails as well, let the callback in the metadata object handle the fallback
         thumbs = GetThumbsFromElement(item.xpath('.//media:thumbnail', namespaces=NAMESPACES))
-
+        Log.Debug('Got thumbnails: ' + '; '.join(thumbs))
 
         # Keywords are used on first-level media containers, or second-level season containers
         # to group a seasoned show, series or season-less show. On an actual media item,
@@ -296,6 +295,7 @@ def RadioItems(url, title=None, pageoffset=1):
     if len(items) < 1:
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
+    # EXAMPLE ITEM IN RESPONSE
     # {
     #     "id": 159140,
     #     "showId": 7,
@@ -331,7 +331,7 @@ def RadioItems(url, title=None, pageoffset=1):
         oc.add(DirectoryObject(
             key = Callback(RadioItems, url=url, pageoffset=int(pageoffset) + 1),
             title = 'More...',
-            thumb=R('cbc-radio.jpg')
+            thumb=R(RADIO_ICON)
         ))
     else:
         Log.Debug('No more items found at URL: ' + url)
@@ -345,9 +345,7 @@ def RadioItems(url, title=None, pageoffset=1):
 def RadioShows(url, pageoffset=1):
     oc = ObjectContainer(title2='CBC Radio Shows')
 
-    pagesize = 30;
-
-    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(pagesize) + '&page=' + str(pageoffset))
+    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset))
 
     # {
     #     "id": 10,
@@ -380,17 +378,17 @@ def RadioShows(url, pageoffset=1):
         oc.add(DirectoryObject(
             key=Callback(RadioItems, url=RADIO_SHOWS + show['slugTitle'], title=show['title']),
             title=show['title'],
-            thumb = Resource.ContentsOfURLWithFallback(url=show['thumbnail'], fallback=R('cbc-radio.jpg')),
+            thumb = Resource.ContentsOfURLWithFallback(url=show['thumbnail'], fallback=RADIO_ICON),
             art=Resource.ContentsOfURLWithFallback(show['backgroundImage'])
         ))
 
     # As long as the number of shows returned is not less than the page size, 
     # assume we have more pages
-    if not len(shows) < pagesize:
+    if not len(shows) < RESULTS_PER_PAGE:
         oc.add(DirectoryObject(
             key = Callback(RadioShows, url=url, pageoffset=int(pageoffset) + 1),
             title = 'More...',
-            thumb=R('cbc-radio.jpg')
+            thumb=R(RADIO_ICON)
         ))
 
     return oc
@@ -413,7 +411,7 @@ def RadioLive (radio='one'):
         oc.add(TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
             title = stream['cbc$name'],
-            thumb = Resource.ContentsOfURLWithFallback(url=stream['thumbnails'], fallback=R('cbc-radio.jpg')) if stream['thumbnails'] else R('cbc-radio.jpg')
+            thumb = Resource.ContentsOfURLWithFallback(url=stream['thumbnails'], fallback=RADIO_ICON) if stream['thumbnails'] else R(RADIO_ICON)
         ))
 
     return oc
@@ -634,16 +632,20 @@ def GetThumbsFromElement(elm):
                 'height': int(elm[i].get('height')),
                 'resolution': int(elm[i].get('height')) * int(elm[i].get('width'))
             })
+        else:
+            Log.Debug('Excluding thumbnail: ' + elm[i].get('url'))
+
         i += 1
 
+    # Sort with smallest first
     thumbs = sorted(thumbs, key=GetThumbsSortKey)
 
+    # Generate a list of thumbnail URLs
     i = 0;
     while i < len(thumbs):
         thumbs[i] = thumbs[i]['url']
         i += 1
-
-    # Sort with smallest first
+    
     return thumbs
 
 ####################################################################################################
