@@ -411,6 +411,7 @@ def RadioLive (radio='one'):
         oc.add(TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
             title = stream['cbc$name'],
+            artist = stream['cbc$network'],
             thumb = Resource.ContentsOfURLWithFallback(url=stream['thumbnails'], fallback=RADIO_ICON) if stream['thumbnails'] else R(RADIO_ICON)
         ))
 

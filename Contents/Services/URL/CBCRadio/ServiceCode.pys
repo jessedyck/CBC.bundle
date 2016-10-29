@@ -98,17 +98,27 @@ def MediaObjectsForURL(url):
 
 	return [
 		MediaObject(
+			protocol = Protocol.HLS,
+			optimized_for_streaming = True,
+			container = 'mpegts',
+			audio_codec = AudioCodec.AAC,
+			audio_channels = 2,
+			parts = [
+				PartObject(key=Callback(PlayMedia, url=url, ext='ts', type='hls'))
+			]
+		),
+		MediaObject(
 			container = Container.MP3,
 			audio_codec = AudioCodec.MP3,
 			audio_channels = 2,
 			parts = [
-				PartObject(key=Callback(PlayMedia, url=url, ext='MP3'))
+				PartObject(key=Callback(PlayMedia, url=url, ext='mp3', type='mp3'))
 			]
-		)
+		),
 	]
 
 ####################################################################################################
-def PlayMedia(url, **kwargs):
+def PlayMedia(url, type='mp3', ext='mp3'):
 	Log.Debug('Getting media item URL for CBC Radio URL: ' + url)
 	
 	audio_type = GetAudioType(url)
@@ -122,7 +132,12 @@ def PlayMedia(url, **kwargs):
 		raise Ex.MediaNotAvailable
 
 	if audio_type == 'live':
-		audio_url = GetLiveMP3StreamURL(page['content'])
+		audio_url = GetLiveStreamURLs(page['content'])
+
+		if not type or not audio_url[type]:
+			return False
+		else:
+			audio_url = audio_url[type]
 
 	else:
 		audio_url = page['url']
@@ -147,12 +162,26 @@ def GetAudioType (url):
 ####################################################################################################
 # Takes the stream['content'] array of media content from a live stream JSON entry, and 
 # returns the url of the containing MP3 stream
-def GetLiveMP3StreamURL (item):
-    for i in item:
-        if 'MP3' in i['assetTypes']:
-            return i['streamingUrl']
+def GetLiveStreamURLs (item):
+	urls = {}
 
-    return False
+	for i in item:
+		if 'MP3' in i['assetTypes']:
+			urls['mp3'] = i['streamingUrl']
+			Log.Debug('Found MP3 Stream: ' + i['streamingUrl'])
+
+		if 'HLS' in i['assetTypes']:
+			urls['hls'] = i['streamingUrl']
+			Log.Debug('Found HLS Stream: ' + i['streamingUrl'])
+
+		if 'HDS' in i['assetTypes']:
+			urls['hds'] = i['streamingUrl']
+			Log.Debug('Found HDS Stream: ' + i['streamingUrl'])
+
+	if urls:
+		return urls
+
+	return False
 
 ####################################################################################################
 # Takes the stream['content'] array of media content from a live stream JSON entry, and 
