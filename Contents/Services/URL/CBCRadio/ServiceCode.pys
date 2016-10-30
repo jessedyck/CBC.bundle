@@ -27,6 +27,7 @@ import re
 
 
 BASE_URL = 'https://api-gw.radio-canada.ca/audio/v1/clips/'
+CACHE_TIME = CACHE_1HOUR
 AudioStreamObject.language_code = Locale.Language.English
 
 ####################################################################################################
@@ -52,9 +53,9 @@ def MetadataObjectForURL(url):
 	
 	try:
 		if (audio_type == 'live'):
-			page = JSON.ObjectFromURL(url)
+			page = JSON.ObjectFromURL(url, cacheTime=CACHE_TIME)
 		else:
-			page = JSON.ObjectFromURL(url + '?inline=show')
+			page = JSON.ObjectFromURL(url + '?inline=show', cacheTime=CACHE_TIME)
 	except:
 		raise Ex.MediaNotAvailable
 	
@@ -125,9 +126,9 @@ def PlayMedia(url, type='mp3', ext='mp3'):
 	
 	try:
 		if (audio_type == 'live'):
-			page = JSON.ObjectFromURL(url)
+			page = JSON.ObjectFromURL(url, cacheTime=CACHE_TIME)
 		else:
-			page = JSON.ObjectFromURL(url + '?inline=show')
+			page = JSON.ObjectFromURL(url + '?inline=show', cacheTime=CACHE_TIME)
 	except:
 		raise Ex.MediaNotAvailable
 

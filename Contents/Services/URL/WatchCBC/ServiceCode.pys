@@ -5,6 +5,7 @@ AUTH_DATA = '<device><type>web</type></device>'
 AudioStreamObject.language_code = Locale.Language.English
 NAMESPACES = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/'}
 BASE_URL = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/'
+CACHE_TIME = CACHE_1HOUR
 
 #### AUTH DATA/CACHE
 # Since it appears the global Dict and Data storage isn't available in a URL Service,
@@ -71,7 +72,7 @@ def NormalizeURL(url):
 def MetadataObjectForURL(url):
 	Log.Debug('Getting metadata for Watch.CBC.ca URL:' + url)
 	try:
-		video_data = XML.ElementFromURL(url)
+		video_data = XML.ElementFromURL(url, cacheTime=CACHE_TIME)
 	except:
 		raise Ex.MediaNotAvailable
 
@@ -165,7 +166,7 @@ def MediaObjectsForURL(url):
 @indirect
 def PlayHLS(url):
 
-	video_data = XML.ElementFromURL(url)
+	video_data = XML.ElementFromURL(url, cacheTime=CACHE_TIME)
 
 	content = video_data.xpath('.//media:content', namespaces=NAMESPACES)
 
@@ -184,13 +185,13 @@ def PlayHLS(url):
 	# Get the URL for the m3u8 playlist file, with auth headers
 	# If the request fails, invalidate auth cache
 	try:
-		playlist_response = XML.ElementFromURL(url, headers=headers)
+		playlist_response = XML.ElementFromURL(url, headers=headers, cacheTime=CACHE_TIME)
 	except HTTPError, e:
 		Log.Debug('Invalidating headers')
 		headers = GetAuthHeaders(invalidate=True)
 
 		try:
-			playlist_response = XML.ElementFromURL(url, headers=headers)
+			playlist_response = XML.ElementFromURL(url, headers=headers, cacheTime=CACHE_TIME)
 		except:
 			Log.Error ('Response from server: ' + str(e.code))
 			raise Ex.MediaNotAvailable
@@ -271,7 +272,7 @@ def GetAuthHeaders(invalidate=False):
 #
 def ResolveAPIUrlFromWebURL(url):
 	try:
-		video_data = HTML.ElementFromURL(url)
+		video_data = HTML.ElementFromURL(url, cacheTime=CACHE_TIME)
 	except:
 		raise Ex.MediaNotAvailable
 

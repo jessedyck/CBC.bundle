@@ -10,6 +10,7 @@
 ART  = 'art-default.jpg'
 ICON = 'icon-default.jpg'
 RADIO_ICON = 'cbc-radio.jpg'
+CACHE_TIME = CACHE_1HOUR
 
 #### Watch.cbc.ca globals
 SHOWS_LIST          = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/babb23ae-fe47-40a0-b3ed-cdc91e31f3d6'
@@ -109,7 +110,7 @@ def MainMenu():
 def Shows(link=SHOWS_LIST, offset=0):
     offset = int(offset)
 
-    page = XML.ElementFromURL(link + '?offset=' + str(offset))
+    page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
 
     try:
         num_items = int(page.xpath('//clearleap:totalResults/text()', namespaces=NAMESPACES)[0])
@@ -156,7 +157,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
     oc = ObjectContainer (title2=title)
     Log.Debug('Show Title: ' + title)
 
-    page = XML.ElementFromURL(link + '?offset=' + str(offset))
+    page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
 
     num_items = int(page.xpath('//clearleap:totalResults', namespaces=NAMESPACES)[0].text)
 
@@ -250,7 +251,7 @@ def RadioCategories(url):
     oc = ObjectContainer(title2='CBC Radio Categories')
 
     try:
-        cats = JSON.ObjectFromURL(url)
+        cats = JSON.ObjectFromURL(url, cacheTime=CACHE_TIME)
 
         if (len(cats) < 1):
             Log.Debug('No Radio categories found at URL: ' + url)
@@ -290,7 +291,7 @@ def RadioItems(url, title=None, pageoffset=1):
     url_new = url + '/clips/?page=' + str(pageoffset)
     Log.Debug('Loading radio items at URL: ' + url_new)
 
-    items = JSON.ObjectFromURL(url_new)
+    items = JSON.ObjectFromURL(url_new, cacheTime=CACHE_TIME)
 
     if len(items) < 1:
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
@@ -345,7 +346,7 @@ def RadioItems(url, title=None, pageoffset=1):
 def RadioShows(url, pageoffset=1):
     oc = ObjectContainer(title2='CBC Radio Shows')
 
-    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset))
+    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset), cacheTime=CACHE_TIME)
 
     # {
     #     "id": 10,
@@ -424,7 +425,7 @@ def RadioLive (radio='one'):
 def HockeyNightInCanada():
 
     oc = ObjectContainer(title2='Hockey Night In Canada')
-    page = HTML.ElementFromURL(NHL_URL)
+    page = HTML.ElementFromURL(NHL_URL, cacheTime=CACHE_TIME)
 
     try:
         live_url = page.xpath('//li[@class="ticker-item live "]//a')[0].get('href')
@@ -453,7 +454,7 @@ def HockeyNightInCanada():
 def LiveSports():
 
     oc = ObjectContainer()
-    page = HTML.ElementFromURL(LIVE_SPORTS)
+    page = HTML.ElementFromURL(LIVE_SPORTS, cacheTime=CACHE_TIME)
 
     for item in page.xpath('//section[@class="category-content full"]//li[@class="medialist-item"]'):
 
@@ -485,9 +486,9 @@ def Category(category=None, link=None):
     oc = ObjectContainer(title2=category)
 
     if link:
-        page = HTML.ElementFromURL(link)
+        page = HTML.ElementFromURL(link, cacheTime=CACHE_TIME)
     else:
-        page = HTML.ElementFromURL(PLAYER_URL % category.lower())
+        page = HTML.ElementFromURL(PLAYER_URL % category.lower(), cacheTime=CACHE_TIME)
         oc.add(DirectoryObject(key=Callback(Featured, category=category), title="Featured"))
 
     for item in page.xpath('.//ul[@class="longlist-list"]//a'):
@@ -535,7 +536,7 @@ def ShowsMenu(title, link):
     Log.Debug("Entering CBC.ca player shows menu. URL: " + link)
 
     oc = ObjectContainer(title2=title)
-    page = HTML.ElementFromURL(link)
+    page = HTML.ElementFromURL(link, cacheTime=CACHE_TIME)
 
     ''' If the page includes a list of seasons or other sub-divisions, use the Category() function to parse them '''
     try:
@@ -581,7 +582,7 @@ def Featured(category=None):
     Log.Debug("Entering CBC.ca player Featured method. Category: " + category)
 
     oc = ObjectContainer(title2=category)
-    page = HTML.ElementFromURL(PLAYER_URL % category.lower())
+    page = HTML.ElementFromURL(PLAYER_URL % category.lower(), cacheTime=CACHE_TIME)
 
     for item in page.xpath('//div[@class="featured-container"]'):
 
@@ -661,7 +662,7 @@ def PopulateRadioLiveStations ():
     if (len(RADIO_LIVE_STATIONS['radioone']) > 0):
         return True
 
-    streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL)
+    streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL, cacheTime=CACHE_TIME)
 
     try:
         streams = streams_json['entries']
