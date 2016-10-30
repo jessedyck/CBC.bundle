@@ -409,12 +409,27 @@ def RadioLive (radio='one'):
     for stream in RADIO_LIVE_STATIONS['radio' + radio]:
         Log.Debug('Got station: ' + stream['title'])
 
-        oc.add(TrackObject(
+        to = TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
             title = stream['cbc$name'],
+            album = stream['cbc$name'],
             artist = stream['cbc$network'],
             thumb = Resource.ContentsOfURLWithFallback(url=stream['thumbnails'], fallback=RADIO_ICON) if stream['thumbnails'] else R(RADIO_ICON)
-        ))
+        )
+
+        # Get the name of the current live program and tack it on to the object
+        #
+        # TODO: This is commented because it makes an HTTP request for each station and takes 
+        # a long time to complete. Need a more performant solution
+        # metadata_url = GetLiveMetadataURL(stream['content'])
+
+        # if (metadata_url):
+        #     program_name = GetLiveProgramName(metadata_url)
+
+        #     if program_name:
+        #         to.title = program_name
+
+        oc.add(to)
 
     return oc
 
@@ -678,3 +693,29 @@ def PopulateRadioLiveStations ():
             RADIO_LIVE_STATIONS['radiotwo'].append(stream)
 
     return True
+
+####################################################################################################
+# Takes the stream['content'] array of media content from a live stream JSON entry, and 
+# returns the url of the containing Metadata URL
+def GetLiveMetadataURL (item):
+    for i in item:
+        if 'Metadata' in i['assetTypes']:
+            return i['streamingUrl']
+
+    return False
+
+####################################################################################################
+# Gets the name of the currently-playing program of a live radio station
+# URL example: http://www.cbc.ca/programguide/live.do?output=xml&networkKey=cbc_radio_one&locationKey=inuvik
+def GetLiveProgramName(url):
+    # Don't cache metadata URL, since the currently-playing program
+    # will constantly change
+    metadata = XML.ElementFromURL(url=url, cacheTime=0)
+    
+    program_name = metadata.xpath('//name/text()')
+
+    if (len(program_name) > 0):
+        Log.Debug('Current program: ' + program_name[0])
+        return program_name[0]
+
+    return False

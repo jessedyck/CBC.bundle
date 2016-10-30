@@ -83,12 +83,7 @@ def MetadataObjectForURL(url):
 		metadata_url = GetLiveMetadataURL(page['content'])
 
 		if (metadata_url):
-			metadata = XML.ElementFromURL(url=metadata_url, cacheTime=0)
-			
-			program_name = metadata.xpath('//name/text()')
-
-			if (len(program_name) > 0):
-				to.summary = program_name[0]
+			title = GetLiveProgramName(metadata_url)
 
 	return to
 
@@ -194,3 +189,19 @@ def GetLiveMetadataURL (item):
             return i['streamingUrl']
 
     return False
+
+####################################################################################################
+# Gets the name of the currently-playing program of a live radio station
+# URL example: http://www.cbc.ca/programguide/live.do?output=xml&networkKey=cbc_radio_one&locationKey=inuvik
+def GetLiveProgramName(url):
+	# Don't cache metadata URL, since the currently-playing program
+	# will constantly change
+	metadata = XML.ElementFromURL(url=url, cacheTime=0)
+	
+	program_name = metadata.xpath('//name/text()')
+
+	if (len(program_name) > 0):
+		Log.Debug('Current program: ' + program_name[0])
+		return program_name[0]
+
+	return False
