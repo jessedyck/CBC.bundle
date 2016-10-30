@@ -83,7 +83,7 @@ def MetadataObjectForURL(url):
 		metadata_url = GetLiveMetadataURL(page['content'])
 
 		if (metadata_url):
-			title = GetLiveProgramName(metadata_url)
+			to.title = GetLiveProgramName(metadata_url)
 
 	return to
 
