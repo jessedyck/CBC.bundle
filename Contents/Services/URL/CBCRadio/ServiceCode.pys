@@ -149,7 +149,7 @@ def PlayMedia(url, type='mp3', ext='mp3'):
 		raise Ex.MediaNotAvailable
 
 	Log.Debug('Returning CBC Radio media item at: ' + audio_url)
-	return Redirect(audio_url)
+	return IndirectResponse(TrackObject, audio_url)
 
 ####################################################################################################
 # Determine if the URL is for a live stream or an ondemand show
