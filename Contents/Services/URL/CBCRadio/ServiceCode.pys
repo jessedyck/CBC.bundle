@@ -78,7 +78,7 @@ def MetadataObjectForURL(url):
 		to.album = page['cbc$network']
 
 		if page['thumbnails']:
-			to.thumb = Resoruce.ContentsOfURLWithFallback(url=page['thumbnails'])
+			to.thumb = Resource.ContentsOfURLWithFallback(url=page['thumbnails'])
 
 		metadata_url = GetLiveMetadataURL(page['content'])
 
@@ -119,6 +119,7 @@ def MediaObjectsForURL(url):
 	]
 
 ####################################################################################################
+@indirect
 def PlayMedia(url, type='mp3', ext='mp3'):
 	Log.Debug('Getting media item URL for CBC Radio URL: ' + url)
 	
