@@ -7,10 +7,10 @@
 #
 
 #### General globals
-ART  = 'art-default.jpg'
-ICON = 'icon-default.jpg'
-RADIO_ICON = 'cbc-radio.jpg'
-CACHE_TIME = CACHE_1HOUR
+ART                 = 'art-default.jpg'
+ICON                = 'icon-default.jpg'
+RADIO_ICON          = 'cbc-radio.jpg'
+CACHE_TIME          = CACHE_1HOUR
 
 #### Watch.cbc.ca globals
 SHOWS_LIST          = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/babb23ae-fe47-40a0-b3ed-cdc91e31f3d6'
@@ -21,28 +21,28 @@ NAMESPACES          = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'h
 SHOW_TYPES          = ['season', 'series', 'seasonless_show']
 
 #### Radio Globals
-RADIO_FE_BASE = 'http://www.cbc.ca/listen/'
-RADIO_FE_CATS = RADIO_FE_BASE + 'categories/'
-RADIO_FE_SHOWS = RADIO_FE_BASE + 'shows/'
-RADIO_BASE = 'https://api-gw.radio-canada.ca/audio/v1/'
-RADIO_CATS = RADIO_BASE + 'categories/'
-RADIO_SHOWS = RADIO_BASE + 'shows/'
-RADIO_CLIPS = RADIO_BASE + 'clips/'
-RADIO_LIVE_URL = 'http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio'
+RADIO_FE_BASE       = 'http://www.cbc.ca/listen/'
+RADIO_FE_CATS       = RADIO_FE_BASE + 'categories/'
+RADIO_FE_SHOWS      = RADIO_FE_BASE + 'shows/'
+RADIO_BASE          = 'https://api-gw.radio-canada.ca/audio/v1/'
+RADIO_CATS          = RADIO_BASE + 'categories/'
+RADIO_SHOWS         = RADIO_BASE + 'shows/'
+RADIO_CLIPS         = RADIO_BASE + 'clips/'
+RADIO_LIVE_URL      = 'http://tpfeed.cbc.ca/f/ExhSPC/cbc-live-radio'
 RADIO_LIVE_STATIONS = {
     'radioone': [],
     'radiotwo': []
 }
 
 ### Old cbc.ca player globals
-CBC_CA_BASE        = 'http://www.cbc.ca'
+CBC_CA_BASE         = 'http://www.cbc.ca'
 PLAYER_URL          = CBC_CA_BASE + '/player/%s'
 VIDEO_URL           = PLAYER_URL % 'play/'
 LIVE_SPORTS         = PLAYER_URL % 'sports/Live'
 NHL_URL             = CBC_CA_BASE  + '/sports/hockey/nhl'
 JSON_URL            = CBC_CA_BASE  + '/json/cmlink/%s'
-RE_THUMB_URL=   Regex('background-image: url\(\'(?P<url>http://.+?jpg)\'\)')
-CATEGORIES  = ['News', 'Sports']
+RE_THUMB_URL        = Regex('background-image: url\(\'(?P<url>http://.+?jpg)\'\)')
+CATEGORIES          = ['News', 'Sports']
 
 
 

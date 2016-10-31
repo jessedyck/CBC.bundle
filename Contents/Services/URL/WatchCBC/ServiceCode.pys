@@ -212,11 +212,6 @@ def PlayHLS(url):
 	playlist_url = playlist_response[0].text
 	Log.Debug('Playlist URL: ' + playlist_url)
 
-	#streams = CreateVideoStreams(url)
-
-	# if len(streams) < 1:
-	# 	raise Ex.MediaNotAvailable
-
 	return IndirectResponse(VideoClipObject, key=playlist_url)
 
 
@@ -272,68 +267,7 @@ def GetAuthHeaders(invalidate=False):
 		raise Ex.MediaNotAuthorized
 
 ####################################################################################################
-# Take a watch.cbc.ca URL and convert it to an API URL
-#
-def ResolveAPIUrlFromWebURL(url):
-	try:
-		video_data = HTML.ElementFromURL(url, cacheTime=CACHE_TIME)
-	except:
-		raise Ex.MediaNotAvailable
-
-	# Get div.episode-layout element, and extract the ID from the data-reactid attr
-	elm = video_data.xpath('//div[contains(@class, "episode-layout")]')
-
-	if (elm):
-		elm = elm[0].get('class')
-	else:
-		Log.Error ('Could not find a video at this URL')
-		raise Ex.MediaNotAvailable
-
-
-	video_id = elm.split('$').split('.')[0]
-
-	if (video_id):
-		return BASE_URL + video_id;
-	else:
-		Log.Error ('Could not find a video at this URL')
-		raise Ex.MediaNotAvailable
-
-####################################################################################################
-# The below functions likely aren't needed, as Plex seems to parse the m3u8 files
-# itself, but they might be used to extract audio and video streams separately, if desired.
-#
-# NOTE: These are unfinished and untested
-#
-# Thanks @kapeer - https://github.com/kapeer/Telewizjada.bundle/blob/master/Contents/Code/__init__.py#L185
-def CreateVideoStreams(url):
-	root_url = url.split('?',1)[0]
-	media_base = root_url.rsplit('/', 1)[0] + '/'
-	playlist = HTTP.Request(url, headers=HEADERS, cacheTime=300).content
-	streams = []
-
-	for line in playlist.splitlines():
-		if line and not line.startswith('#'):
-			streams.append(media_base + line)
-
-	return streams
-
-####################################################################################################
-def CreateAudioStream(url):
-
-	root_url = url.split('?',1)[0]
-	media_base = root_url.rsplit('/', 1)[0] + '/'
-	playlist = HTTP.Request(url, headers=HEADERS, cacheTime=300).content
-	audio_stream = None;
-
-	for line in playlist.splitlines():
-
-		# Audio stream
-		if line and line.startswith('#EXT-X-MEDIA:TYPE=AUDIO'):
-			audio_stream = re.IGNORECASE('(uri\=\")(.+)(\")',line)
-			audio_stream = audio_stream.group[2]
-			continue
-
-	return (media_base + line)# Depending on the global variable, strip the HTTPS and use HTTP connections only.
+# Depending on the global variable, strip the HTTPS and use HTTP connections only.
 # This functionality is assuming that if the URL Service is passed an HTTP URL, 
 # the following requests should be HTTP
 def StripHTTPS (url):
