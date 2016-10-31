@@ -48,6 +48,7 @@ CATEGORIES  = ['News', 'Sports']
 
 ####################################################################################################
 def Start():
+
     # Setup the default breadcrumb title for the plugin
     ObjectContainer.title1 = 'CBC'
 
@@ -95,6 +96,12 @@ def MainMenu():
     oc.add(DirectoryObject(key=Callback(RadioLive, radio='one'), title='Radio One', thumb=R(RADIO_ICON)))
     oc.add(DirectoryObject(key=Callback(RadioLive, radio='two'), title='Radio Two', thumb=R(RADIO_ICON)))
 
+    oc.add(
+        PrefsObject(
+            title='Preferences'
+        )
+    )
+
     # oc.add(SearchDirectoryObject(
     #     identifier = 'com.plexapp.plugins.cbcnewsnetwork',
     #     title = 'Search',
@@ -107,12 +114,15 @@ def MainMenu():
 ####################################################################################################
 ## Function used for watch.cbc.ca
 @route('/video/cbc/shows')
-def Shows(link=SHOWS_LIST, offset=0):
+def Shows(link, offset=0):
     offset = int(offset)
+    link = StripHTTPS(link)
 
-    page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
+    Log.Debug('Loading content from ' + link)
 
     try:
+        page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
+
         num_items = int(page.xpath('//clearleap:totalResults/text()', namespaces=NAMESPACES)[0])
     except:
         return ObjectContainer(header="Sorry", message="There are no shows currently available.")
@@ -128,7 +138,7 @@ def Shows(link=SHOWS_LIST, offset=0):
         title = show.xpath('.//title')[0].text
 
         # Link to the show episode/series list
-        show_link = show.xpath('.//link')[0].text
+        show_link = StripHTTPS(show.xpath('.//link')[0].text)
 
         thumbs = GetThumbsFromElement(show.xpath('.//media:thumbnail', namespaces=NAMESPACES))
 
@@ -157,7 +167,13 @@ def DisplayShowItems(title=None, link=None, offset=0):
     oc = ObjectContainer (title2=title)
     Log.Debug('Show Title: ' + title)
 
-    page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
+    link = StripHTTPS(link)
+
+    try:
+        page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
+
+    except:
+        return ObjectContainer(header="Sorry", message="There are no shows currently available.")
 
     num_items = int(page.xpath('//clearleap:totalResults', namespaces=NAMESPACES)[0].text)
 
@@ -174,12 +190,12 @@ def DisplayShowItems(title=None, link=None, offset=0):
             raise Ex.MediaNotAvailable
 
         video_title = video_title[0]
-        url = item.xpath('.//link/text()')[0]
+        url = StripHTTPS(item.xpath('.//link/text()')[0])
         summary = item.xpath('.//description/text()')[0]
         guid = item.xpath('.//guid/text()')[0]
 
-        # THUMBNAIL size exists on episodes, but not on seasons
-        # If BANNER size fails as well, let the callback in the metadata object handle the fallback
+        # Get thumbnails; if none exist, let the framework deal with fallback
+        # Note that HTTPS is stripped in GetThumbsFromElement
         thumbs = GetThumbsFromElement(item.xpath('.//media:thumbnail', namespaces=NAMESPACES))
         Log.Debug('Got thumbnails: ' + '; '.join(thumbs))
 
@@ -250,6 +266,11 @@ def RadioCategories(url):
 
     oc = ObjectContainer(title2='CBC Radio Categories')
 
+    # url = StripHTTPS(url)
+
+    if not Prefs['enable_https']:
+        Log.Debug('CBC Radio API requires HTTPS')
+
     try:
         cats = JSON.ObjectFromURL(url, cacheTime=CACHE_TIME)
 
@@ -284,6 +305,12 @@ def RadioCategories(url):
 @route('/video/cbc/radioitems')
 def RadioItems(url, title=None, pageoffset=1):
     oc = ObjectContainer(title2=title or 'CBC Radio')
+
+    # url = StripHTTPS(url)
+
+    if not Prefs['enable_https']:
+        Log.Debug('CBC Radio API requires HTTPS')
+
 
     # There does not seem to be a way to override this in the API
     pagesize = 10;
@@ -345,6 +372,11 @@ def RadioItems(url, title=None, pageoffset=1):
 @route('/video/cbc/radioshows')
 def RadioShows(url, pageoffset=1):
     oc = ObjectContainer(title2='CBC Radio Shows')
+
+    # url = StripHTTPS(url)
+
+    if not Prefs['enable_https']:
+        Log.Debug('CBC Radio API requires HTTPS')
 
     shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset), cacheTime=CACHE_TIME)
 
@@ -408,6 +440,13 @@ def RadioLive (radio='one'):
 
     for stream in RADIO_LIVE_STATIONS['radio' + radio]:
         Log.Debug('Got station: ' + stream['title'])
+
+        # thumbs = []
+
+        # if (stream['thumbnails'] and not ENABLE_HTTPS):
+        #     for thumb in stream['thumbnails']:
+        #         thumbs.append(StripHTTPS(thumb))
+
 
         to = TrackObject(
             url = RADIO_LIVE_URL + '/' + str(stream['guid']),
@@ -643,7 +682,7 @@ def GetThumbsFromElement(elm):
     while i < len(elm):
         if elm[i].get('url') and elm[i].get('width') and elm[i].get('height'):
             thumbs.append ({
-                'url': elm[i].get('url'),
+                'url': StripHTTPS(elm[i].get('url')),
                 'profile': elm[i].get('profile'),
                 'width': int(elm[i].get('width')),
                 'height': int(elm[i].get('height')),
@@ -672,6 +711,9 @@ def GetThumbsSortKey (item):
 ####################################################################################################
 def PopulateRadioLiveStations ():
     global RADIO_LIVE_STATIONS
+
+    if not Prefs['enable_https']:
+        Log.Debug('CBC Radio API requires HTTPS')
 
     # if our 'cache' is already primed, bail early
     if (len(RADIO_LIVE_STATIONS['radioone']) > 0):
@@ -719,3 +761,14 @@ def GetLiveProgramName(url):
         return program_name[0]
 
     return False
+
+####################################################################################################
+# Depending on the global variable, strip the HTTPS and use HTTP connections only.
+# This functionality is assuming that if the URL Service is passed an HTTP URL, 
+# the following requests should be HTTP
+def StripHTTPS (url):
+    if not Prefs['enable_https']:
+        Log.Debug('Stripping HTTPS from ' + url)
+        url = url.replace('https://', 'http://')
+
+    return url

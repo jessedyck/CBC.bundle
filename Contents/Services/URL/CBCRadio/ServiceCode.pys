@@ -32,6 +32,7 @@ AudioStreamObject.language_code = Locale.Language.English
 
 ####################################################################################################
 def NormalizeURL(url):
+
 	Log.Debug('Parsing CBC Radio URL: ' + url)
 
 	if re.search('^http(s?):\/\/(www\.)?cbc\.ca\/listen(\/)?(.+)?', url):
@@ -43,11 +44,19 @@ def NormalizeURL(url):
 			Log.Debug('Could not convert cbc.ca/listen URL into an API URL. Given URL: ' + url)
 			raise Ex.MediaNotAvailable
 
+	if url.startswith('http://'):
+		# Note: Forcing HTTPS might fail for some due to SNI validations,
+		# it apppears this will remain until Plex's framework upgrades it's python version
+		Log.Debug('CBC Radio API requires HTTPS; Converting.')
+		url.replace('http://', 'https://')
+
 	return url
 
 ####################################################################################################
 def MetadataObjectForURL(url):
 	Log.Debug('Getting metadata for CBC Radio URL: ' + url)
+
+	# url = StripHTTPS(url)
 
 	audio_type = GetAudioType(url)
 	
@@ -92,6 +101,8 @@ def MediaObjectsForURL(url):
 
 	Log.Debug('MediaObects URL: ' + url)
 
+	# url = StripHTTPS(url)
+
 	return [
 		MediaObject(
 			protocol = Protocol.HLS,
@@ -118,6 +129,8 @@ def MediaObjectsForURL(url):
 def PlayMedia(url, type='mp3', ext='mp3'):
 	Log.Debug('Getting media item URL for CBC Radio URL: ' + url)
 	
+	# url = StripHTTPS(url)
+
 	audio_type = GetAudioType(url)
 	
 	try:
@@ -194,6 +207,8 @@ def GetLiveMetadataURL (item):
 # Gets the name of the currently-playing program of a live radio station
 # URL example: http://www.cbc.ca/programguide/live.do?output=xml&networkKey=cbc_radio_one&locationKey=inuvik
 def GetLiveProgramName(url):
+	# url = StripHTTPS(url)
+
 	# Don't cache metadata URL, since the currently-playing program
 	# will constantly change
 	metadata = XML.ElementFromURL(url=url, cacheTime=0)
@@ -205,3 +220,13 @@ def GetLiveProgramName(url):
 		return program_name[0]
 
 	return False
+
+####################################################################################################
+# Depending on the global variable, strip the HTTPS and use HTTP connections only.
+# This functionality is assuming that if the URL Service is passed an HTTP URL, 
+# the following requests should be HTTP
+def StripHTTPS (url):
+	if not ENABLE_HTTPS:
+		return url.replace('https://', 'http://')
+
+	return url

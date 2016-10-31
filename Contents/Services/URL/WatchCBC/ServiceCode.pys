@@ -6,6 +6,7 @@ AudioStreamObject.language_code = Locale.Language.English
 NAMESPACES = {'media': 'http://search.yahoo.com/mrss/', 'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/'}
 BASE_URL = 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/'
 CACHE_TIME = CACHE_1HOUR
+ENABLE_HTTPS = True
 
 #### AUTH DATA/CACHE
 # Since it appears the global Dict and Data storage isn't available in a URL Service,
@@ -65,7 +66,10 @@ def NormalizeURL(url):
 			Log.Debug('Could not convert watch.cbc.ca URL into an API URL. Given URL: ' + url)
 			raise Ex.MediaNotAvailable
 
-	return url.split('?')[0]
+	if url.startswith('http://'):
+		ENABLE_HTTPS = False
+
+	return StripHTTPS(url.split('?')[0])
 
 ####################################################################################################
 # Example URL: https://api-cbc.cloud.clearleap.com/cloffice/client/web/browse/38e815a-009d9df1ce0
@@ -108,7 +112,7 @@ def MetadataObjectForURL(url):
 	Log.Debug('Got video ' + title)
 
 	# Get some images
-	thumb = video_data.xpath('.//media:thumbnail[contains(@profile,"CBC-THUMBNAIL-2X")]', namespaces=NAMESPACES)[0].get('url')
+	thumb = StripHTTPS(video_data.xpath('.//media:thumbnail[contains(@profile,"CBC-THUMBNAIL-2X")]', namespaces=NAMESPACES)[0].get('url'))
 	art = video_data.xpath('.//media:thumbnail[contains(@profile,"CBC-POSTER-2X")]', namespaces=NAMESPACES)
 
 
@@ -132,7 +136,7 @@ def MetadataObjectForURL(url):
 	)
 
 	# Add some extra metadata
-	if art: video_obj.art = Resource.ContentsOfURLWithFallback(url=art[0].get('url'))
+	if art: video_obj.art = Resource.ContentsOfURLWithFallback(url=StripHTTPS(art[0].get('url')))
 	if duration: video_obj.duration = duration
 	if date: video_obj.originally_available_at = Datetime.ParseDate(date[0]).date()
 	if season: video_obj.season = int(season[0])
@@ -242,7 +246,7 @@ def GetAuthHeaders(invalidate=False):
 		AUTH_CACHE['cbc_auth_timestamp'] = None
 
 	try:
-		auth = XML.ElementFromURL(AUTH_URL, values={'data': AUTH_DATA}, cacheTime=None)
+		auth = XML.ElementFromURL(StripHTTPS(AUTH_URL), values={'data': AUTH_DATA}, cacheTime=None)
 
 		'''
 		EXAMPLE RESPONSE:
@@ -329,4 +333,11 @@ def CreateAudioStream(url):
 			audio_stream = audio_stream.group[2]
 			continue
 
-	return (media_base + line)
+	return (media_base + line)# Depending on the global variable, strip the HTTPS and use HTTP connections only.
+# This functionality is assuming that if the URL Service is passed an HTTP URL, 
+# the following requests should be HTTP
+def StripHTTPS (url):
+	if not ENABLE_HTTPS:
+		return url.replace('https://', 'http://')
+
+	return url
