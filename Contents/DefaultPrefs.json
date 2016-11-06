@@ -1,0 +1,8 @@
+[
+	{
+		"id": 		"enable_https",
+		"label": 	"Enable HTTPS Connections (Note this does not apply to CBC Radio, which requires HTTPS)",
+		"type":		"bool",
+		"default":	"true"
+	}
+]
