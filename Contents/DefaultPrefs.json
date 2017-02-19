@@ -1,8 +1,20 @@
 [
 	{
+		"id": 		"high_quality_thumbs",
+		"label": 	"Enable high quality thumbnails. This might be desired for mobile connections or to speed up browsing.",
+		"type":		"bool",
+		"default":	"true"
+	},
+	{
 		"id": 		"enable_https",
 		"label": 	"Enable HTTPS Connections (Note this does not apply to CBC Radio, which requires HTTPS)",
 		"type":		"bool",
 		"default":	"true"
+	},
+	{
+		"id": 		"debug",
+		"label": 	"Enable additional debugging to help diagnose errors",
+		"type":		"bool",
+		"default":	"false"
 	}
 ]
