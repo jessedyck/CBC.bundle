@@ -673,6 +673,9 @@ def Featured(category=None):
 ####################################################################################################
 
 # Get all thumbs, sort by resolution, then return a list of URLs
+#
+# EXAMPLE dict used to sort
+# [{'url': 'http://a.com', 'profile': 'test', 'width': 100, 'height': 100, 'resolution': 10000},{'url': 'http://g.com', 'profile': 'test', 'width': 100, 'height': 100, 'resolution': 543068},{'url': 'http://s.com', 'profile': 'test', 'width': 100, 'height': 100, 'resolution': 3520},{'url': 'http://b.com', 'profile': 'test', 'width': 100, 'height': 100, 'resolution': 59802572}]
 def GetThumbsFromElement(elm):
 
     thumbs = []
@@ -693,8 +696,9 @@ def GetThumbsFromElement(elm):
 
         i += 1
 
-    # Sort with smallest first
-    thumbs = sorted(thumbs, key=GetThumbsSortKey)
+    # Sort thumbs by resolution, using the Pref to dictate high quality (sorted in reserve/desc)
+    # or low quality first (sorted in asc order)
+    thumbs = sorted(thumbs, key=lambda thumb:thumb.get('resolution'), reverse=Prefs['high_quality_thumbs'])
 
     # Generate a list of thumbnail URLs
     i = 0;
@@ -703,10 +707,6 @@ def GetThumbsFromElement(elm):
         i += 1
     
     return thumbs
-
-####################################################################################################
-def GetThumbsSortKey (item):
-    return item['resolution']
 
 ####################################################################################################
 def PopulateRadioLiveStations ():
