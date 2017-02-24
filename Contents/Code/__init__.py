@@ -282,8 +282,6 @@ def RadioCategories(url):
 
     oc = ObjectContainer(title2='CBC Radio Categories')
 
-    # url = StripHTTPS(url)
-
     if not Prefs['enable_https']:
         Logger('CBC Radio API requires HTTPS', 'info')
 
@@ -322,8 +320,6 @@ def RadioCategories(url):
 @route('/video/cbc/radioitems')
 def RadioItems(url, title=None, pageoffset=1):
     oc = ObjectContainer(title2=title or 'CBC Radio')
-
-    # url = StripHTTPS(url)
 
     if not Prefs['enable_https']:
         Logger('CBC Radio API requires HTTPS', 'info')
@@ -425,10 +421,10 @@ def RadioShows(url, pageoffset=1):
     #     "hostImage": "http://www.cbc.ca/radio/podcasts/images/hosts/World-Report-circle.png",
     #     "hosts": [{
     #         "id": 10, 
-    #         "name": "David Common"
+    #         "name": "First Last"
     #     }, {
     #         "id": 141,
-    #         "name": "Marcia Young"
+    #         "name": "First Last"
     #     }]
     # }
 
