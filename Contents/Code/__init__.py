@@ -1,3 +1,5 @@
+import sys, traceback
+
 ####################################################################################################
 #CBC.CA Video Plugin
 #Written by mysciencefriend
@@ -52,14 +54,23 @@ def Start():
     # Setup the default breadcrumb title for the plugin
     ObjectContainer.title1 = 'CBC'
 
-    Log.Debug('Starting up the CBC channel')
+    Logger('Starting up the CBC channel')
+    Logger('*' * 80)
+    Logger('Platform.OS            = {}'.format(Platform.OS))
+    Logger('Platform.OSVersion     = {}'.format(Platform.OSVersion))
+    Logger('Platform.CPU           = {}'.format(Platform.CPU))
+    Logger('Platform.ServerVersion = {}'.format(Platform.ServerVersion))
+    #Logger('Channel.Version        = {}'.format(get_channel_version()))
+    Logger('*' * 80)
+
+    HTTP.ClearCache()
 
 
 ####################################################################################################
 @handler('/video/cbc', 'CBC', art=ART, thumb=ICON)
 def MainMenu():
 
-    Log.Debug('Displaying CBC Main Menu')
+    Logger('Displaying CBC Main Menu')
 
     oc = ObjectContainer()
 
@@ -118,15 +129,16 @@ def Shows(link, offset=0):
     offset = int(offset)
     link = StripHTTPS(link)
 
-    Log.Debug('Loading content from ' + link)
+    Logger('Loading content from {}'.format(link), 'info')
+    Logger('Content offset: {}'.format(offset))
 
     try:
         page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
 
         num_items = int(page.xpath('//clearleap:totalResults/text()', namespaces=NAMESPACES)[0])
-    except:
-        return ObjectContainer(header="Sorry", message="There are no shows currently available.")
 
+    except:
+        return handleHTTPException(sys.exc_info());
 
     page_title = page.xpath('//category/text()')[0].split('/')[0]
     shows = page.xpath('//item')
@@ -165,15 +177,17 @@ def Shows(link, offset=0):
 @route('/video/cbc/showepisodes')
 def DisplayShowItems(title=None, link=None, offset=0):
     oc = ObjectContainer (title2=title)
-    Log.Debug('Show Title: ' + title)
-
+    Logger('Loading content from {}'.format(link), 'info')
+    Logger('Show: {}'.format(title))
+    Logger('Offset: {}'.format(offset))
+    
     link = StripHTTPS(link)
 
     try:
         page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
 
     except:
-        return ObjectContainer(header="Sorry", message="There are no shows currently available.")
+        return handleHTTPException(sys.exc_info());
 
     num_items = int(page.xpath('//clearleap:totalResults', namespaces=NAMESPACES)[0].text)
 
@@ -187,6 +201,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
         # If there's less than 1 title returned, bail
         # otherwise, we can assume the rest of the properties exist too
         if len(video_title) < 1:
+            Logger('No episode titles returned from {}'.format(link), 'error')
             raise Ex.MediaNotAvailable
 
         video_title = video_title[0]
@@ -197,7 +212,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
         # Get thumbnails; if none exist, let the framework deal with fallback
         # Note that HTTPS is stripped in GetThumbsFromElement
         thumbs = GetThumbsFromElement(item.xpath('.//media:thumbnail', namespaces=NAMESPACES))
-        Log.Debug('Got thumbnails: ' + '; '.join(thumbs))
+        Logger('Got thumbnails: ' + '; '.join(thumbs))
 
         # Keywords are used on first-level media containers, or second-level season containers
         # to group a seasoned show, series or season-less show. On an actual media item,
@@ -212,7 +227,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
         # First level navigation (eg: list of seasons)
         if (keywords[0] in SHOW_TYPES and not parent_url):
-            Log.Debug('Adding a show to the container')
+            Logger('Adding a show to the container')
 
             item_obj = TVShowObject(
                 key = Callback(DisplayShowItems, link=url, title=video_title),
@@ -227,7 +242,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
             # Getting list of seasons
             if ('season' in keywords):
-                Log.Debug('Adding a season to the container')
+                Logger('Adding a season to the container')
                 item_obj = SeasonObject(
                     key = Callback(DisplayShowItems, link=url, title=video_title),
                     rating_key = guid,
@@ -238,13 +253,13 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
         # Video item, possibly episode in season, or seasonless video
         else:
-            Log.Debug('Adding a final video to the container')
             item_obj = VideoClipObject(
                 url = url,
                 title = video_title,
                 summary = summary,
                 thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
             )
+            Logger('Adding a final video to the container')
 
         oc.add(item_obj)
 
@@ -255,7 +270,8 @@ def DisplayShowItems(title=None, link=None, offset=0):
         ))
 
     if len(oc) < 1:
-        return ObjectContainer(header="Sorry", message="There aren't any videos currently available for this show.")
+        Logger('No videos found at {}'.format(link), 'error')
+        return ObjectContainer(header="Sorry", message="There are no videos currently available for this show.")
     else:
         return oc
 
@@ -269,16 +285,16 @@ def RadioCategories(url):
     # url = StripHTTPS(url)
 
     if not Prefs['enable_https']:
-        Log.Debug('CBC Radio API requires HTTPS')
+        Logger('CBC Radio API requires HTTPS', 'info')
 
     try:
         cats = JSON.ObjectFromURL(url, cacheTime=CACHE_TIME)
 
         if (len(cats) < 1):
-            Log.Debug('No Radio categories found at URL: ' + url)
+            Logger('No Radio categories found at URL: {}', 'error')
             raise Ex.MediaNotAvailable
     except:
-        return ObjectContainer(header="No Categories", message="Sorry, no categories were found.")
+        return handleHTTPException(sys.exc_info());
 
     # Response is an array of objects. EG:
     #   "id": 1,
@@ -294,6 +310,7 @@ def RadioCategories(url):
         ))
 
     if len(oc) < 1:
+        Logger('No radio categories found at {}'.format(url), 'error')
         return ObjectContainer(header="No Categories", message="Sorry, no categories were found.")
     else:
         return oc
@@ -309,19 +326,23 @@ def RadioItems(url, title=None, pageoffset=1):
     # url = StripHTTPS(url)
 
     if not Prefs['enable_https']:
-        Log.Debug('CBC Radio API requires HTTPS')
+        Logger('CBC Radio API requires HTTPS', 'info')
 
 
     # There does not seem to be a way to override this in the API
     pagesize = 10;
 
     url_new = url + '/clips/?page=' + str(pageoffset)
-    Log.Debug('Loading radio items at URL: ' + url_new)
+    Logger('Loading radio items at URL: {}'.format(url_new))
 
-    items = JSON.ObjectFromURL(url_new, cacheTime=CACHE_TIME)
+    try:
+        items = JSON.ObjectFromURL(url_new, cacheTime=CACHE_TIME)
 
-    if len(items) < 1:
-        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
+        if len(items) < 1:
+            Logger('No radio items found for {}'.format(title))
+            raise Ex.MediaNotAvailable
+    except:
+        return handleHTTPException(sys.exc_info());
 
     # EXAMPLE ITEM IN RESPONSE
     # {
@@ -362,7 +383,7 @@ def RadioItems(url, title=None, pageoffset=1):
             thumb=R(RADIO_ICON)
         ))
     else:
-        Log.Debug('No more items found at URL: ' + url)
+        Logger('No more items found at URL: ' + url)
 
     return oc
 
@@ -376,9 +397,16 @@ def RadioShows(url, pageoffset=1):
     # url = StripHTTPS(url)
 
     if not Prefs['enable_https']:
-        Log.Debug('CBC Radio API requires HTTPS')
+        Logger('CBC Radio API requires HTTPS', 'info')
 
-    shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset), cacheTime=CACHE_TIME)
+    try:
+        shows = JSON.ObjectFromURL(url + '?pageSize=' + str(RESULTS_PER_PAGE) + '&page=' + str(pageoffset), cacheTime=CACHE_TIME)
+
+        if len(shows) < 1:
+            Logger('No radio shows found for {} with offset {}'.format(url, offset))
+            raise Ex.MediaNotAvailable
+    except:
+        return handleHTTPException(sys.exc_info());
 
     # {
     #     "id": 10,
@@ -403,9 +431,6 @@ def RadioShows(url, pageoffset=1):
     #         "name": "Marcia Young"
     #     }]
     # }
-
-    if len(shows) < 1:
-        return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
     for show in shows:
         oc.add(DirectoryObject(
@@ -439,7 +464,7 @@ def RadioLive (radio='one'):
         return ObjectContainer(header="No Items", message="Sorry, no items were found.")
 
     for stream in RADIO_LIVE_STATIONS['radio' + radio]:
-        Log.Debug('Got station: ' + stream['title'])
+        Logger('Got station: ' + stream['title'])
 
         # thumbs = []
 
@@ -535,7 +560,7 @@ def LiveSports():
 ## Function used for cbc.ca player
 @route('/video/cbc/category')
 def Category(category=None, link=None):
-    Log.Debug('Entering CBC.ca player category. Category: ' + (category or '') + ' Link: ' + (link or ''))
+    Logger('Entering CBC.ca player category. Category: ' + (category or '') + ' Link: ' + (link or ''))
 
     oc = ObjectContainer(title2=category)
 
@@ -587,7 +612,7 @@ def Category(category=None, link=None):
 ## Function used for cbc.ca player
 @route('/video/cbc/show')
 def ShowsMenu(title, link):
-    Log.Debug("Entering CBC.ca player shows menu. URL: " + link)
+    Logger("Entering CBC.ca player shows menu. URL: " + link)
 
     oc = ObjectContainer(title2=title)
     page = HTML.ElementFromURL(link, cacheTime=CACHE_TIME)
@@ -633,7 +658,7 @@ def ShowsMenu(title, link):
 ## Function used for cbc.ca player
 @route('/video/cbc/featured')
 def Featured(category=None):
-    Log.Debug("Entering CBC.ca player Featured method. Category: " + category)
+    Logger("Entering CBC.ca player Featured method. Category: " + category)
 
     oc = ObjectContainer(title2=category)
     page = HTML.ElementFromURL(PLAYER_URL % category.lower(), cacheTime=CACHE_TIME)
@@ -692,7 +717,7 @@ def GetThumbsFromElement(elm):
                 'resolution': int(elm[i].get('height')) * int(elm[i].get('width'))
             })
         else:
-            Log.Debug('Excluding thumbnail: ' + elm[i].get('url'))
+            Logger('Excluding thumbnail: ' + elm[i].get('url'))
 
         i += 1
 
@@ -713,19 +738,22 @@ def PopulateRadioLiveStations ():
     global RADIO_LIVE_STATIONS
 
     if not Prefs['enable_https']:
-        Log.Debug('CBC Radio API requires HTTPS')
+        Logger('CBC Radio API requires HTTPS')
 
     # if our 'cache' is already primed, bail early
     if (len(RADIO_LIVE_STATIONS['radioone']) > 0):
         return True
 
-    streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL, cacheTime=CACHE_TIME)
+    try:
+        streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL, cacheTime=CACHE_TIME)
+    except:
+        return handleHTTPException(sys.exc_info());
 
     try:
         streams = streams_json['entries']
 
     except:
-        Log.Debug('Error getting CBC Radio streams')
+        Logger('Error getting CBC Radio streams' 'error')
         return False
 
     for stream in streams:
@@ -757,7 +785,7 @@ def GetLiveProgramName(url):
     program_name = metadata.xpath('//name/text()')
 
     if (len(program_name) > 0):
-        Log.Debug('Current program: ' + program_name[0])
+        Logger('Current program: ' + program_name[0])
         return program_name[0]
 
     return False
@@ -768,7 +796,79 @@ def GetLiveProgramName(url):
 # the following requests should be HTTP
 def StripHTTPS (url):
     if not Prefs['enable_https']:
-        Log.Debug('Stripping HTTPS from ' + url)
+        Logger('Stripping HTTPS from ' + url)
         url = url.replace('https://', 'http://')
 
     return url
+
+
+####################################################################################################
+# Inspired by: https://github.com/Twoure/KissNetwork.bundle/blob/7230f39a02118b81b3b123512b3dde8ac0d6e5f4/Contents/Code/__init__.py#L1763
+# Usage examples:
+#             Logger('* ep_count = {}'.format(ep_count))
+#             Logger('* new season list = {}'.format(nseason_list))
+
+# @route('/video/cbc/logger', force=bool)
+def Logger(message, kind=None, force=False):
+
+    kind = kind.lower() if kind else None
+    message = '* ' + message
+
+    # If debug pref is enabled, log all debug messages as well as explict messages
+    # If debug is not set, only log explicit messages unless forced
+    if ((force or Prefs['debug']) and (kind == None or kind == 'debug')):
+        Log.Debug(message)
+    elif kind == 'info':
+        Log.Info(message)
+    elif kind == 'warn':
+        Log.Warn(message)
+    elif kind == 'error':
+        Log.Error(message)
+    elif kind == 'critical':
+        Log.Critical(message)
+    else:
+        pass
+
+    return
+
+# Handle errors from HTTP requests and return an ObjectContainer
+# with a meaningful error to the client
+def handleHTTPException (e=None):
+    if not e:
+        Logger('Exception. Nothing exception information caught.')
+        return ObjectContainer(header='Sorry', message='Unknown exception.')
+
+    etype = e[0]
+    evalue = e[1]
+
+    Logger('Exception {}: {}'.format(etype, evalue), 'error')
+    
+    if (Prefs['debug']):
+        etraceback = traceback.format_list(traceback.extract_tb(e[2]))
+        Logger('Beginning exception trace:', 'info')
+        Logger('*' * 80, 'info')
+
+        for stack in etraceback:
+            Logger(stack, 'error')
+        Logger('*' * 80, 'info')
+        Logger('End exception trace.', 'info')
+
+    # Errors with an HTTP response code
+    if (etype == 'HTTPError'):
+        if (etype.code == 403):
+            Logger('HTTP 403 - CBC GeoBlocked')
+            return ObjectContainer(header='Region Locked', message='CBC is only accessible within Canada')
+        elif (etype.code == 404):
+            Logger('HTTP 404 - No content was found')
+            return ObjectContainer(header='Sorry', message='Nothing was found here. Error 404.')
+        else:
+            Logger('HTTP Error: {}').format(etype.code)
+            return ObjectContainer(header='Sorry', message='Could not contact CBC to get the show list. Try again. Error: {}'.format(etype.code))
+    
+    #Errors initiating the request, eg: no internet connection
+    elif (etype == 'URLError'):
+        Logger('URL Error: {}'.format(etype.reason), error)
+        return ObjectContainer(header='Sorry', message='Could not contact CBC to get the show list. Try again. Unknown error.')
+    else:
+        Logger('Exception {}: {}'.format(etype, evalue), 'error')
+        return ObjectContainer(header='Sorry', message='Could not find a show list.')
