@@ -60,7 +60,6 @@ def Start():
     Logger('Platform.OSVersion     = {}'.format(Platform.OSVersion))
     Logger('Platform.CPU           = {}'.format(Platform.CPU))
     Logger('Platform.ServerVersion = {}'.format(Platform.ServerVersion))
-    #Logger('Channel.Version        = {}'.format(get_channel_version()))
     Logger('*' * 80)
 
     HTTP.ClearCache()
@@ -138,7 +137,7 @@ def Shows(link, offset=0):
         num_items = int(page.xpath('//clearleap:totalResults/text()', namespaces=NAMESPACES)[0])
 
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     page_title = page.xpath('//category/text()')[0].split('/')[0]
     shows = page.xpath('//item')
@@ -187,7 +186,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
         page = XML.ElementFromURL(link + '?offset=' + str(offset), cacheTime=CACHE_TIME)
 
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     num_items = int(page.xpath('//clearleap:totalResults', namespaces=NAMESPACES)[0].text)
 
@@ -213,7 +212,7 @@ def DisplayShowItems(title=None, link=None, offset=0):
         # Get thumbnails; if none exist, let the framework deal with fallback
         # Note that HTTPS is stripped in GetThumbsFromElement
         thumbs = GetThumbsFromElement(item.xpath('.//media:thumbnail', namespaces=NAMESPACES))
-        Logger('Got thumbnails: ' + '; '.join(thumbs))
+        Logger('Got thumbnails: {}'.format('; '.join(thumbs)))
 
         # Keywords are used on first-level media containers, or second-level season containers
         # to group a seasoned show, series or season-less show. On an actual media item,
@@ -224,7 +223,15 @@ def DisplayShowItems(title=None, link=None, offset=0):
         keywords = item.xpath('.//media:keywords/text()', namespaces=NAMESPACES)
         item_type = item.xpath('.//clearleap:itemType/text()', namespaces=NAMESPACES)
         
+        # Some additional metadata for use on various containers
+        season_num = item.xpath('.//clearleap:season/text()', namespaces=NAMESPACES)
+        season_num = int(season_num[0]) if len(season_num) > 0 else None
+        episode_num = item.xpath('.//clearleap:episodeInSeason/text()', namespaces=NAMESPACES)
+        episode_num = int(episode_num[0]) if len(episode_num) > 0 else None
 
+        Logger ('Season: {}'.format(season_num))
+        Logger ('Episode: {}'.format(episode_num))
+        Logger ('Item title: {}'.format(video_title))
 
 
         # TOP LEVEL SHOW LISTING
@@ -304,7 +311,7 @@ def RadioCategories(url):
             Logger('No Radio categories found at URL: {}', 'error')
             raise Ex.MediaNotAvailable
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     # Response is an array of objects. EG:
     #   "id": 1,
@@ -350,7 +357,7 @@ def RadioItems(url, title=None, pageoffset=1):
             Logger('No radio items found for {}'.format(title))
             raise Ex.MediaNotAvailable
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     # EXAMPLE ITEM IN RESPONSE
     # {
@@ -414,7 +421,7 @@ def RadioShows(url, pageoffset=1):
             Logger('No radio shows found for {} with offset {}'.format(url, offset))
             raise Ex.MediaNotAvailable
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     # {
     #     "id": 10,
@@ -755,7 +762,7 @@ def PopulateRadioLiveStations ():
     try:
         streams_json = JSON.ObjectFromURL(RADIO_LIVE_URL, cacheTime=CACHE_TIME)
     except:
-        return handleHTTPException(sys.exc_info());
+        return handleHTTPException(sys.exc_info())
 
     try:
         streams = streams_json['entries']
@@ -809,7 +816,6 @@ def StripHTTPS (url):
 
     return url
 
-
 ####################################################################################################
 # Inspired by: https://github.com/Twoure/KissNetwork.bundle/blob/7230f39a02118b81b3b123512b3dde8ac0d6e5f4/Contents/Code/__init__.py#L1763
 # Usage examples:
@@ -843,13 +849,11 @@ def Logger(message, kind=None, force=False):
 # with a meaningful error to the client
 def handleHTTPException (e=None):
     if not e:
-        Logger('Exception. Nothing exception information caught.')
+        Logger('Exception. No exception information caught.')
         return ObjectContainer(header='Sorry', message='Unknown exception.')
 
     etype = e[0]
     evalue = e[1]
-
-    Logger('Exception {}: {}'.format(etype, evalue), 'error')
     
     if (Prefs['debug']):
         etraceback = traceback.format_list(traceback.extract_tb(e[2]))
