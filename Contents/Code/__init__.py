@@ -62,8 +62,6 @@ def Start():
     Logger('Platform.ServerVersion = {}'.format(Platform.ServerVersion))
     Logger('*' * 80)
 
-    HTTP.ClearCache()
-
 
 ####################################################################################################
 @handler('/video/cbc', 'CBC', art=ART, thumb=ICON)
