@@ -226,8 +226,10 @@ def DisplayShowItems(title=None, link=None, offset=0):
         
 
 
-        # First level navigation (eg: list of seasons)
-        if (keywords[0] in SHOW_TYPES and not parent_url):
+
+        # TOP LEVEL SHOW LISTING
+        # Will always be one of either 'series' or 'seasonless_show'
+        if ('series' == keywords[0] or 'seasonless_show' == keywords[0]):
             Logger('Adding a show to the container')
 
             item_obj = TVShowObject(
@@ -238,31 +240,40 @@ def DisplayShowItems(title=None, link=None, offset=0):
                 thumb = Resource.ContentsOfURLWithFallback(url=thumbs) 
             )
 
-        # Second level navigation (eg: seasons episodes list)
-        elif (keywords[0] in SHOW_TYPES and parent_url):
+        
+        elif 'season' == keywords[0]:
+            # LISTING OF SEASONS IN SHOW
 
             # Getting list of seasons
-            if ('season' in keywords):
-                Logger('Adding a season to the container')
-                item_obj = SeasonObject(
-                    key = Callback(DisplayShowItems, link=url, title=video_title),
-                    rating_key = guid,
-                    title = video_title,
-                    summary = summary,
-                    thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
-                )
-
-        # Video item, possibly episode in season, or seasonless video
-        else:
-            item_obj = VideoClipObject(
-                url = url,
+            Logger('Adding a season to the container')
+            item_obj = SeasonObject(
+                key = Callback(DisplayShowItems, link=url, title=video_title),
+                rating_key = guid,
                 title = video_title,
                 summary = summary,
                 thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
             )
+            
+        else:
+            # VIDEO ITEM
+            # Possibly episode in season, or seasonless video
+
             Logger('Adding a final video to the container')
 
+            if (season_num):
+                item_obj = EpisodeObject()
+                item_obj.index = episode_num
+                item_obj.season = season_num
+            else:
+                item_obj = VideoClipObject()
+
+            item_obj.url = url
+            item_obj.title = video_title
+            item_obj.summary = summary
+            item_obj.thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
+
         oc.add(item_obj)
+    # END forloop
 
     if (offset + RESULTS_PER_PAGE < num_items):
         oc.add(DirectoryObject(
