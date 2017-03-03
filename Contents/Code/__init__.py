@@ -206,8 +206,9 @@ def DisplayShowItems(title=None, link=None, offset=0):
 
         video_title = video_title[0]
         url = StripHTTPS(item.xpath('.//link/text()')[0])
-        summary = item.xpath('.//description/text()')[0]
         guid = item.xpath('.//guid/text()')[0]
+        summary = item.xpath('.//description/text()')
+        summary = summary[0] if len(summary) > 0 else None
 
         # Get thumbnails; if none exist, let the framework deal with fallback
         # Note that HTTPS is stripped in GetThumbsFromElement
