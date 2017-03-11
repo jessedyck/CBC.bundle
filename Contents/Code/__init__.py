@@ -237,27 +237,18 @@ def DisplayShowItems(title=None, link=None, offset=0):
         if ('series' == keywords[0] or 'seasonless_show' == keywords[0]):
             Logger('Adding a show to the container')
 
-            item_obj = TVShowObject(
-                key = Callback(DisplayShowItems, link=url, title=video_title),
-                rating_key = guid,
-                title = video_title,
-                summary = summary,
-                thumb = Resource.ContentsOfURLWithFallback(url=thumbs) 
-            )
-
+            item_obj = TVShowObject()
+            item_obj.key = Callback(DisplayShowItems, link=url, title=video_title)
+            item_obj.rating_key = guid
         
         elif 'season' == keywords[0]:
             # LISTING OF SEASONS IN SHOW
 
             # Getting list of seasons
             Logger('Adding a season to the container')
-            item_obj = SeasonObject(
-                key = Callback(DisplayShowItems, link=url, title=video_title),
-                rating_key = guid,
-                title = video_title,
-                summary = summary,
-                thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
-            )
+            item_obj = SeasonObject()
+            item_obj.key = Callback(DisplayShowItems, link=url, title=video_title)
+            item_obj.rating_key = guid
             
         else:
             # VIDEO ITEM
@@ -266,16 +257,20 @@ def DisplayShowItems(title=None, link=None, offset=0):
             Logger('Adding a final video to the container')
 
             if (season_num):
+                Logger('Creating EpisodeObject')
                 item_obj = EpisodeObject()
-                item_obj.index = episode_num
-                item_obj.season = season_num
+                if episode_num: item_obj.index = episode_num
+                if season_num: item_obj.season = season_num
             else:
+                Logger('Creating VideoClipObject with URL: {}'.format(url))
                 item_obj = VideoClipObject()
 
             item_obj.url = url
-            item_obj.title = video_title
-            item_obj.summary = summary
-            item_obj.thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
+
+        # Properties common to all object types
+        item_obj.title = video_title
+        item_obj.summary = summary
+        item_obj.thumb = Resource.ContentsOfURLWithFallback(url=thumbs)
 
         oc.add(item_obj)
     # END forloop
